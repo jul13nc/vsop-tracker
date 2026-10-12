@@ -1,0 +1,17 @@
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+.vercel
+
+# Dependencies and generated output
+node_modules/
+web/node_modules/
+web/dist/
+web/*.tsbuildinfo
+
+# Local Supabase runtime state
+supabase/.temp/
+
+# Operating system
+.DS_Store
