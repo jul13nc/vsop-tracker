@@ -18,6 +18,8 @@ export type PublicStandingInput = {
   rebuySequences: number[]
 }
 
+export type SevenTwoInput = { memberId: string; memberName: string }
+
 export const DEFAULT_CHIPS: Chip[] = [
   { label: 'Vert', value: 25, quantity: 12 },
   { label: 'Noir', value: 100, quantity: 12 },
@@ -117,6 +119,16 @@ export function publicStandings(results: PublicStandingInput[], pointsByRank: Re
     }
   }
   return calculateStandings(projected, pointsByRank)
+}
+
+export function calculateSevenTwoStandings(results: SevenTwoInput[]) {
+  const counts = new Map<string, { memberId: string; name: string; wins: number }>()
+  for (const result of results) {
+    const row = counts.get(result.memberId) ?? { memberId: result.memberId, name: result.memberName, wins: 0 }
+    row.wins += 1
+    counts.set(result.memberId, row)
+  }
+  return [...counts.values()].sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name))
 }
 
 export function validatePayoutTable(table: PayoutTable) {

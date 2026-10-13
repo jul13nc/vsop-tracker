@@ -311,6 +311,8 @@ begin
     group by session_id, member_id
   ), ranked_results as (
     select
+      session.id as session_id,
+      player.member_id,
       member.name,
       session.played_at,
       player.final_rank,
@@ -348,6 +350,40 @@ begin
     'standings',coalesce((
       select jsonb_agg(jsonb_build_object('name',name,'points',total_points,'sessions',sessions) order by total_points desc,name)
       from standings
+    ),'[]'::jsonb),
+    'seven_two_standings',coalesce((
+      select jsonb_agg(jsonb_build_object('name',seven_two.name,'wins',seven_two.wins) order by seven_two.wins desc,seven_two.name)
+      from (
+        select member.id,member.name,count(*) as wins
+        from public.session_events event
+        join ranked_results ranked on ranked.session_id=event.session_id and ranked.member_id=event.member_id
+        join public.members member on member.id=event.member_id
+        where event.event_type='seven_two'
+        group by member.id,member.name
+      ) seven_two
+    ),'[]'::jsonb),
+    'session_results',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'played_at',game.played_at,
+        'payout_table',game.configuration_snapshot->'payout_table',
+        'buy_in',game.configuration_snapshot->'buy_in',
+        'pot',coalesce((
+          select sum(entry.amount)
+          from (
+            select (game.configuration_snapshot->>'buy_in')::numeric as amount
+            from public.session_players initial_player where initial_player.session_id=game.id
+            union all
+            select rebuy.amount from public.session_events rebuy where rebuy.session_id=game.id and rebuy.event_type='rebuy'
+          ) entry
+        ),0),
+        'players',coalesce((
+          select jsonb_agg(jsonb_build_object('name',member.name,'rank',player.final_rank) order by player.final_rank)
+          from public.session_players player
+          join public.members member on member.id=player.member_id
+          where player.session_id=game.id
+        ),'[]'::jsonb)
+      ) order by game.played_at desc)
+      from public.sessions game where game.season_id=v_season_id and game.status='finished'
     ),'[]'::jsonb)
   ) into v_result
   from public.seasons season where season.id=v_season_id;

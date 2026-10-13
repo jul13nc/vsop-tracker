@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session as AuthSession } from '@supabase/supabase-js'
 import { supabase, type SupabaseClient } from '../lib/supabase'
-import { DEFAULT_CHIPS, DEFAULT_PAYOUTS, DEFAULT_POINTS, calculatePot, calculateStandings, payoutsFor, seasonLabel, type PayoutTable } from '../lib/domain'
+import { DEFAULT_CHIPS, DEFAULT_PAYOUTS, DEFAULT_POINTS, calculatePot, calculateStandings, calculateSevenTwoStandings, payoutsFor, seasonLabel, type PayoutTable } from '../lib/domain'
 import { GameView } from './GameView'
 import { SettingsView } from './SettingsView'
+import type { PublicStandingInput } from '../lib/domain'
 
 type Role = 'organizer' | 'reader' | null
 type Season = { id: string; start_year: number; status: 'open' | 'closed' }
@@ -33,6 +34,7 @@ export function Dashboard({ session }: { session: AuthSession }) {
   const [players, setPlayers] = useState<Player[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [standings, setStandings] = useState<ReturnType<typeof calculateStandings>>([])
+  const [sevenTwoStandings, setSevenTwoStandings] = useState<ReturnType<typeof calculateSevenTwoStandings>>([])
   const [inviteEmail, setInviteEmail] = useState('')
   const [publicLink, setPublicLink] = useState('')
 
@@ -147,9 +149,10 @@ export function Dashboard({ session }: { session: AuthSession }) {
     if (sessionResult.error || configResult.error) { setError(sessionResult.error?.message ?? configResult.error?.message ?? 'Classement indisponible.'); return }
     const games = sessionResult.data ?? []
     const gameIds = games.map((game) => game.id)
-    const eventResult = gameIds.length
-      ? await client.from('session_events').select('session_id,member_id,event_type,sequence_number').in('session_id', gameIds).eq('event_type', 'rebuy')
-      : { data: [], error: null }
+    const [eventResult, sevenTwoResult] = gameIds.length ? await Promise.all([
+      client.from('session_events').select('session_id,member_id,event_type,sequence_number').in('session_id', gameIds).eq('event_type', 'rebuy'),
+      client.from('session_events').select('session_id,member_id').in('session_id', gameIds).eq('event_type', 'seven_two'),
+    ]) : [{ data: [], error: null }, { data: [], error: null }]
     if (eventResult.error) { setError(eventResult.error.message); return }
     const firstRebuyBySessionAndPlayer = new Map<string, number>()
     for (const event of eventResult.data ?? []) {
@@ -166,6 +169,28 @@ export function Dashboard({ session }: { session: AuthSession }) {
         }))
     })
     setStandings(calculateStandings(rows, configResult.data?.points_by_rank as Record<string, number> ?? DEFAULT_POINTS))
+    if (sevenTwoResult.error) { setError(sevenTwoResult.error.message); return }
+    const sevenTwoRows: PublicStandingInput[] = games.flatMap((game) => (game.session_players as unknown as Array<{member_id:string;final_rank:number|null;member:{name:string}|null}>).filter((player) => player.member).map((player) => ({
+      memberId: player.member_id,
+      memberName: player.member!.name,
+      sessionId: game.id,
+      sessionDate: game.played_at,
+      finalRank: player.final_rank,
+      rebuySequences: eventResult.data?.filter((event) => event.session_id === game.id && event.member_id === player.member_id).map((event) => event.sequence_number) ?? [],
+    })))
+    const annualRanks = new Map(calculateStandings(sevenTwoRows.map((row) => ({
+      memberId: row.memberId,
+      memberName: row.memberName,
+      finalRank: row.finalRank,
+      firstRebuySequence: row.rebuySequences.length ? Math.min(...row.rebuySequences) : null,
+      sessionId: row.sessionId,
+      sessionDate: row.sessionDate,
+    })), {}).flatMap((standing) => standing.sessions.map((result) => [`${result.sessionId}:${standing.memberId}`, result.rank])))
+    const memberNames = new Map(sevenTwoRows.map((row) => [`${row.sessionId}:${row.memberId}`, row.memberName]))
+    setSevenTwoStandings(calculateSevenTwoStandings((sevenTwoResult.data ?? []).filter((event) => annualRanks.has(`${event.session_id}:${event.member_id}`)).flatMap((event) => {
+      const memberName = memberNames.get(`${event.session_id}:${event.member_id}`)
+      return memberName ? [{ memberId: event.member_id, memberName }] : []
+    })))
   }, [selectedSeasonId])
 
   useEffect(() => {
@@ -285,7 +310,7 @@ export function Dashboard({ session }: { session: AuthSession }) {
         {role === 'organizer' && season.status === 'open' && <div className="tabbar" role="tablist">{(['game','standings','members','settings'] as const).map((item) => <button key={item} role="tab" aria-selected={tab === item} onClick={() => setTab(item)}>{item === 'game' ? 'Journée' : item === 'standings' ? 'Classement' : item === 'members' ? 'Membres' : 'Réglages'}</button>)}</div>}
         {(role === 'reader' || season.status === 'closed') && <div className="tabbar" role="tablist"><button role="tab" aria-selected={tab==='game'} onClick={()=>setTab('game')}>Journées</button><button role="tab" aria-selected={tab==='standings'} onClick={()=>{setTab('standings');void loadStandings()}}>Classement</button></div>}
         {tab === 'game' && <GameView season={season} sessions={sessions} selectedSessionId={selectedSessionId} onSelectSession={setSelectedSessionId} players={players} events={events} activeCount={activeCount} totalPot={totalPot} payouts={payouts} canEdit={Boolean(canEdit)} busy={busy} members={members} onCreateSession={createSession} onRecord={recordEvent} onCloseSeason={closeSeason} />}
-         {tab === 'standings' && <section className="content-panel"><div className="section-title"><p className="eyebrow">SAISON {seasonLabel(season.start_year)}</p><h1>Classement général</h1><p>Points cumulés selon le rang retenu pour chaque journée.</p></div>{role==='organizer'&&<div className="public-link-tools"><button className="secondary-button" disabled={busy} onClick={()=>void createPublicLink()}>Générer un lien invité</button>{publicLink&&<div className="public-link-row"><input aria-label="Lien public du classement" readOnly value={publicLink}/><button className="secondary-button" onClick={()=>void copyPublicLink()}>Copier</button><button className="danger-button" onClick={()=>void revokePublicLink()}>Révoquer</button></div>}</div>}<div className="standings-list">{standings.length ? standings.map((row,index)=><article className="standing-row" key={row.memberId}><b className="standing-place">{String(index+1).padStart(2,'0')}</b><div className="standing-info"><strong>{row.name}</strong><small>{row.sessions.map((item)=>`${new Date(`${item.sessionDate}T12:00:00`).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} · ${item.rank}e${item.rebought?' (recave)':''}`).join('  /  ')}</small></div><strong className="standing-points">{row.points}<small> pts</small></strong></article>) : <p className="empty-copy">Le classement apparaîtra après première journée terminée.</p>}</div></section>}
+         {tab === 'standings' && <><section className="content-panel"><div className="section-title"><p className="eyebrow">SAISON {seasonLabel(season.start_year)}</p><h1>Classement général</h1><p>Points cumulés selon le rang retenu pour chaque journée.</p></div>{role==='organizer'&&<div className="public-link-tools"><button className="secondary-button" disabled={busy} onClick={()=>void createPublicLink()}>Générer un lien invité</button>{publicLink&&<div className="public-link-row"><input aria-label="Lien public du classement" readOnly value={publicLink}/><button className="secondary-button" onClick={()=>void copyPublicLink()}>Copier</button><button className="danger-button" onClick={()=>void revokePublicLink()}>Révoquer</button></div>}</div>}<div className="standings-list">{standings.length ? standings.map((row,index)=><article className="standing-row" key={row.memberId}><b className="standing-place">{String(index+1).padStart(2,'0')}</b><div className="standing-info"><strong>{row.name}</strong><small>{row.sessions.map((item)=>`${new Date(`${item.sessionDate}T12:00:00`).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} · ${item.rank}e${item.rebought?' (recave)':''}`).join('  /  ')}</small></div><strong className="standing-points">{row.points}<small> pts</small></strong></article>) : <p className="empty-copy">Le classement apparaîtra après première journée terminée.</p>}</div></section><section className="content-panel"><div className="section-title"><p className="eyebrow">RECORDS DE LA SAISON</p><h2>Victoires avec 7/2</h2><p>Nombre de mains gagnées avec 7/2, toutes journées terminées confondues.</p></div><div className="standings-list">{sevenTwoStandings.length?sevenTwoStandings.map((row,index)=><article className="standing-row" key={row.memberId}><b className="standing-place">{String(index+1).padStart(2,'0')}</b><div className="standing-info"><strong>{row.name}</strong></div><strong className="standing-points">{row.wins}<small> mains</small></strong></article>):<p className="empty-copy">Aucune main gagnée avec 7/2 enregistrée cette saison.</p>}</div></section></>}
         {tab === 'members' && <section className="content-panel"><div className="section-title"><p className="eyebrow">COMMUNAUTÉ</p><h1>Les membres</h1><p>Joueurs disponibles pour les prochaines journées.</p></div>{role==='organizer' && <div className="inline-form"><input aria-label="Nom du membre" placeholder="Nom du membre" value={newMember} onChange={(event)=>setNewMember(event.target.value)} onKeyDown={(event)=>{if(event.key==='Enter')void addMember()}}/><button className="primary-button" onClick={()=>void addMember()} disabled={busy}>Ajouter +</button></div>}<ul className="member-list">{members.map((member)=><li key={member.id}><span className="avatar">{member.name.slice(0,1).toUpperCase()}</span>{member.name}</li>)}</ul>{role==='organizer' && <div className="invite-box"><p className="eyebrow">ACCÈS LECTEUR</p><p>Inviter compte à consulter saisons et résultats en lecture seule.</p><div className="inline-form"><input type="email" aria-label="E-mail du lecteur" placeholder="nom@exemple.fr" value={inviteEmail} onChange={(event)=>setInviteEmail(event.target.value)}/><button className="secondary-button" onClick={()=>void inviteReader()} disabled={busy}>Inviter</button></div></div>}</section>}
         {tab === 'settings' && role==='organizer' && configuration && <SettingsView configuration={configuration} busy={busy} onSave={saveConfig} onCloseSeason={closeSeason} />}
         {currentSession && tab==='game' && <p className="sync-caption">{busy?'Enregistrement…':'État synchronisé'} · {players.length} participants</p>}

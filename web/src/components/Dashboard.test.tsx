@@ -11,7 +11,7 @@ vi.mock('../lib/supabase', () => ({ supabase: mocks }))
 
 function queryResult(table:string) {
   const data=()=>table==='seasons'?[{id:'season-1',start_year:2026,status:'open'}]:table==='sessions'?[{id:'session-1',season_id:'season-1',played_at:'2026-10-01',status:mocks.sessionStatus,configuration_snapshot:{buy_in:10,chips:[]}}]:[]
-  const builder:any={select:vi.fn(()=>builder),eq:vi.fn(()=>builder),order:vi.fn(()=>builder),single:vi.fn(async()=>table==='profiles'?{data:{role:'organizer'},error:null}:{data:{season_id:'season-1',buy_in:10,chips:[],payout_table:{},points_by_rank:{}},error:null}),then:(resolve:any)=>Promise.resolve({data:data(),error:null}).then(resolve)}
+  const builder:any={select:vi.fn(()=>builder),eq:vi.fn(()=>builder),order:vi.fn(()=>builder),in:vi.fn(()=>builder),single:vi.fn(async()=>table==='profiles'?{data:{role:'organizer'},error:null}:{data:{season_id:'season-1',buy_in:10,chips:[],payout_table:{},points_by_rank:{}},error:null}),then:(resolve:any)=>Promise.resolve({data:data(),error:null}).then(resolve)}
   return builder
 }
 

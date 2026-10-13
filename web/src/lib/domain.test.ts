@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculatePot, calculateStandings, DEFAULT_PAYOUTS, payoutsFor, seasonLabel, validatePayoutTable } from './domain'
+import { calculatePot, calculateStandings, calculateSevenTwoStandings, DEFAULT_PAYOUTS, payoutsFor, seasonLabel, validatePayoutTable } from './domain'
 
 describe('championship calculations', () => {
   it('formats school years as consecutive years', () => {
@@ -45,5 +45,16 @@ describe('championship calculations', () => {
     expect(calculateStandings([
       { memberId:'a',memberName:'Alex',finalRank:null,firstRebuySequence:4,sessionId:'s',sessionDate:'2026-10-01' },
     ], { '4':3 })).toEqual([])
+  })
+
+  it('ranks players by seven-two wins', () => {
+    expect(calculateSevenTwoStandings([
+      { memberId: 'a', memberName: 'Alex' },
+      { memberId: 'b', memberName: 'Bea' },
+      { memberId: 'a', memberName: 'Alex' },
+    ])).toEqual([
+      { memberId: 'a', name: 'Alex', wins: 2 },
+      { memberId: 'b', name: 'Bea', wins: 1 },
+    ])
   })
 })

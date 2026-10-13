@@ -38,6 +38,7 @@ update public.profiles set role = 'organizer' where email = 'votre-email@example
 ```
 
 3. Connectez-vous, créez membres/saison, puis invitez lecteurs par adresse e-mail depuis onglet **Membres**. L’Edge Function `invite-reader` envoie e-mail d’invitation Supabase; invitation donne accès lecture à cette application et aucun droit d’écriture.
+4. Depuis le classement, un organisateur peut générer un lien public révocable. Le lien montre classement, records 7/2 et résultats agrégés des journées terminées, sans permettre de saisir ou modifier des données.
 
 ## Supabase hébergé
 
