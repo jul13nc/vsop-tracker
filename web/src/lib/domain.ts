@@ -9,6 +9,15 @@ export type StandingInput = {
   sessionDate: string
 }
 
+export type PublicStandingInput = {
+  memberId: string
+  memberName: string
+  sessionId: string
+  sessionDate: string
+  finalRank: number | null
+  rebuySequences: number[]
+}
+
 export const DEFAULT_CHIPS: Chip[] = [
   { label: 'Vert', value: 25, quantity: 12 },
   { label: 'Noir', value: 100, quantity: 12 },
@@ -73,6 +82,41 @@ export function calculateStandings(results: StandingInput[], pointsByRank: Recor
     }
   }
   return [...totals.values()].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+}
+
+export function publicStandings(results: PublicStandingInput[], pointsByRank: Record<string, number>) {
+  const sessions = new Map<string, PublicStandingInput[]>()
+  for (const result of results) {
+    const rows = sessions.get(result.sessionId) ?? []
+    rows.push(result)
+    sessions.set(result.sessionId, rows)
+  }
+
+  const projected: StandingInput[] = []
+  for (const [sessionId, rows] of sessions) {
+    const withoutRebuy = rows
+      .filter((row) => row.rebuySequences.length === 0 && row.finalRank !== null)
+      .sort((a, b) => (a.finalRank ?? Infinity) - (b.finalRank ?? Infinity))
+    const ranked = new Map<string, number>(withoutRebuy.map((row, index) => [row.memberId, index + 1]))
+    const withRebuy = rows
+      .filter((row) => row.rebuySequences.length > 0 && row.finalRank !== null)
+      .sort((a, b) => Math.max(...b.rebuySequences) - Math.max(...a.rebuySequences))
+    withRebuy.forEach((row, index) => ranked.set(row.memberId, withoutRebuy.length + index + 1))
+
+    for (const row of rows) {
+      const rank = ranked.get(row.memberId)
+      if (rank === undefined || row.finalRank === null) continue
+      projected.push({
+        memberId: row.memberId,
+        memberName: row.memberName,
+        sessionId,
+        sessionDate: row.sessionDate,
+        finalRank: rank,
+        firstRebuySequence: row.rebuySequences.length ? Math.min(...row.rebuySequences) : null,
+      })
+    }
+  }
+  return calculateStandings(projected, pointsByRank)
 }
 
 export function validatePayoutTable(table: PayoutTable) {

@@ -90,6 +90,14 @@ create table public.seasons (
   created_at timestamptz not null default now()
 );
 
+create table public.public_standings_links (
+  token_hash text primary key,
+  season_id uuid not null references public.seasons(id) on delete cascade,
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  revoked_at timestamptz
+);
+
 create table public.season_configurations (
   season_id uuid primary key references public.seasons(id) on delete cascade,
   buy_in numeric(8,2) not null default 10 check (buy_in > 0),
@@ -264,6 +272,90 @@ end;
 $$;
 alter function public.close_season(uuid) owner to postgres;
 
+create function public.create_public_standings_link(p_season_id uuid)
+returns text language plpgsql security definer set search_path = '' as $$
+declare v_token text;
+begin
+  if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode='42501'; end if;
+  if not exists(select 1 from public.seasons where id=p_season_id) then raise exception 'Season not found' using errcode='22023'; end if;
+  v_token := replace(gen_random_uuid()::text || gen_random_uuid()::text,'-','');
+  insert into public.public_standings_links(token_hash,season_id,created_by)
+  values (encode(extensions.digest(v_token,'sha256'),'hex'),p_season_id,auth.uid());
+  return v_token;
+end;
+$$;
+alter function public.create_public_standings_link(uuid) owner to postgres;
+
+create function public.revoke_public_standings_link(p_token text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode='42501'; end if;
+  update public.public_standings_links set revoked_at=now()
+  where token_hash=encode(extensions.digest(p_token,'sha256'),'hex') and revoked_at is null;
+  if not found then raise exception 'Active standings link not found' using errcode='22023'; end if;
+end;
+$$;
+alter function public.revoke_public_standings_link(text) owner to postgres;
+
+create function public.read_public_standings(p_token text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare v_season_id uuid; v_result jsonb;
+begin
+  select season_id into v_season_id from public.public_standings_links
+  where token_hash=encode(extensions.digest(p_token,'sha256'),'hex') and revoked_at is null;
+  if v_season_id is null then return null; end if;
+
+  with first_rebuys as (
+    select session_id, member_id, min(sequence_number) as first_sequence
+    from public.session_events where event_type='rebuy'
+    group by session_id, member_id
+  ), ranked_results as (
+    select
+      member.name,
+      session.played_at,
+      player.final_rank,
+      (rebuy.first_sequence is not null) as rebought,
+      row_number() over (
+        partition by session.id
+        order by
+          case when rebuy.first_sequence is null then 0 else 1 end,
+          case when rebuy.first_sequence is null then player.final_rank end asc,
+          case when rebuy.first_sequence is not null then rebuy.first_sequence end desc
+      ) as annual_rank
+    from public.sessions session
+    join public.session_players player on player.session_id=session.id
+    join public.members member on member.id=player.member_id
+    left join first_rebuys rebuy on rebuy.session_id=session.id and rebuy.member_id=player.member_id
+    where session.season_id=v_season_id and session.status='finished'
+  ), earned_points as (
+    select ranked.*, coalesce((configuration.points_by_rank->>ranked.annual_rank::text)::numeric,0) as points
+    from ranked_results ranked
+    cross join public.season_configurations configuration
+    where configuration.season_id=v_season_id
+  ), standings as (
+    select name, sum(points) as total_points,
+      jsonb_agg(jsonb_build_object(
+        'session_date',played_at,
+        'rank',annual_rank,
+        'points',points,
+        'rebought',rebought
+      ) order by played_at) as sessions
+    from earned_points
+    group by name
+  )
+  select jsonb_build_object(
+    'season', jsonb_build_object('start_year',season.start_year,'status',season.status),
+    'standings',coalesce((
+      select jsonb_agg(jsonb_build_object('name',name,'points',total_points,'sessions',sessions) order by total_points desc,name)
+      from standings
+    ),'[]'::jsonb)
+  ) into v_result
+  from public.seasons season where season.id=v_season_id;
+  return v_result;
+end;
+$$;
+alter function public.read_public_standings(text) owner to postgres;
+
 create function public.validate_season_configuration()
 returns trigger language plpgsql set search_path = '' as $$
 declare v_pot text; v_entry jsonb; v_rank text; v_total numeric;
@@ -338,6 +430,7 @@ create trigger guard_players before insert or update or delete on public.session
 create trigger guard_events before insert or update or delete on public.session_events for each row execute function public.guard_championship_write();
 
 alter table public.reader_invitations enable row level security;
+alter table public.public_standings_links enable row level security;
 alter table public.profiles enable row level security;
 alter table public.seasons enable row level security;
 alter table public.season_configurations enable row level security;
@@ -373,6 +466,9 @@ grant update on public.sessions, public.session_players to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 revoke all on function public.create_season(integer), public.create_session(uuid,date,uuid[]), public.record_session_event(uuid,uuid,public.session_event_type), public.close_season(uuid), public.invite_reader(text) from public, anon;
 grant execute on function public.create_season(integer), public.create_session(uuid,date,uuid[]), public.record_session_event(uuid,uuid,public.session_event_type), public.close_season(uuid), public.invite_reader(text), public.current_role() to authenticated;
+revoke all on function public.create_public_standings_link(uuid), public.revoke_public_standings_link(text), public.read_public_standings(text) from public, anon;
+grant execute on function public.create_public_standings_link(uuid), public.revoke_public_standings_link(text) to authenticated;
+grant execute on function public.read_public_standings(text) to anon, authenticated;
 revoke all on function public.current_role() from public, anon;
 grant execute on function public.current_role() to authenticated;
 

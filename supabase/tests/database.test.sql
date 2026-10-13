@@ -1,5 +1,5 @@
 begin;
-select plan(49);
+select plan(52);
 
 select has_table('public', 'seasons', 'seasons table exists');
 select has_table('public', 'season_configurations', 'configuration table exists');
@@ -20,6 +20,9 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 select lives_ok($$select public.create_season(2026)$$, 'organizer creates season');
+select lives_ok($$select public.create_public_standings_link((select id from public.seasons limit 1))$$, 'organizer creates public standings token');
+select ok(public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1)))) ? 'standings', 'public token returns aggregated standings only');
+select is(public.read_public_standings('invalid-token'),null,'invalid public token returns no standings');
 
 select throws_ok($$select public.create_season(2026)$$,'23505',null,'duplicate school year rejected');
 select is((select buy_in from public.season_configurations limit 1),10::numeric,'default buy-in is ten euros');
