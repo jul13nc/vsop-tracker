@@ -1,7 +1,9 @@
 import { useParams } from "react-router-dom";
 import { listGamedays, listGamedayPlayers } from "../../api/gamedays";
+import { listEvents } from "../../api/events";
 import { listPlayers } from "../../api/players";
 import { useAsync } from "../../hooks/useAsync";
+import { sevenTwoCounts } from "../../domain/sevenTwo";
 import type { GamedayPlayer, Player } from "../../types/domain";
 
 interface ResultsData {
@@ -11,6 +13,7 @@ interface ResultsData {
     counts_double: boolean;
     status: string;
     rows: GamedayPlayer[];
+    sevenTwoByPlayer: Record<string, number>;
   }[];
   players: Player[];
 }
@@ -19,15 +22,22 @@ async function load(seasonId: string): Promise<ResultsData> {
   const gamedays = await listGamedays(seasonId);
   const players = await listPlayers();
   const withRows = await Promise.all(
-    gamedays.map(async (g) => ({
-      id: g.id,
-      date: g.date,
-      counts_double: g.counts_double,
-      status: g.status,
-      rows: (await listGamedayPlayers(g.id))
-        .filter((r) => r.final_rank !== null)
-        .sort((a, b) => (a.final_rank ?? 0) - (b.final_rank ?? 0)),
-    })),
+    gamedays.map(async (g) => {
+      const [gamedayPlayers, events] = await Promise.all([
+        listGamedayPlayers(g.id),
+        listEvents(g.id),
+      ]);
+      return {
+        id: g.id,
+        date: g.date,
+        counts_double: g.counts_double,
+        status: g.status,
+        rows: gamedayPlayers
+          .filter((r) => r.final_rank !== null)
+          .sort((a, b) => (a.final_rank ?? 0) - (b.final_rank ?? 0)),
+        sevenTwoByPlayer: Object.fromEntries(sevenTwoCounts(events)),
+      };
+    }),
   );
   return { gamedays: withRows, players };
 }
@@ -57,6 +67,14 @@ export default function ResultsPage() {
           </div>
           {g.rows.length > 0 ? (
             <table>
+              <thead>
+                <tr>
+                  <th>Rang</th>
+                  <th>Joueur</th>
+                  <th>7/2</th>
+                  <th>Points</th>
+                </tr>
+              </thead>
               <tbody>
                 {g.rows.map((r) => (
                   <tr key={r.player_id}>
@@ -67,6 +85,7 @@ export default function ResultsPage() {
                         <span className="badge badge--rebuy">R×{r.rebuys}</span>
                       )}
                     </td>
+                    <td>{g.sevenTwoByPlayer[r.player_id] ?? '-'}</td>
                     <td>{r.points} pts</td>
                   </tr>
                 ))}
