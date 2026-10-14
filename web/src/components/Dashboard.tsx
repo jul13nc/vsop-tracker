@@ -15,6 +15,8 @@ import {
 } from '../lib/domain'
 import {GameView} from './GameView'
 import {SettingsView} from './SettingsView'
+import {StandingsView} from './StandingsView'
+import type {StandingsViewData} from './StandingsView'
 
 type Role = 'organizer' | 'reader' | null
 type Season = { id: string; start_year: number; status: 'open' | 'closed' }
@@ -74,6 +76,7 @@ export function Dashboard({session}: { session: AuthSession }) {
     const [events, setEvents] = useState<Event[]>([])
     const [standings, setStandings] = useState<ReturnType<typeof calculateStandings>>([])
     const [sevenTwoStandings, setSevenTwoStandings] = useState<ReturnType<typeof calculateSevenTwoStandings>>([])
+    const [sessionResults, setSessionResults] = useState<StandingsViewData['sessionResults']>([])
     const [inviteEmail, setInviteEmail] = useState('')
     const [publicLink, setPublicLink] = useState('')
 
@@ -215,7 +218,7 @@ export function Dashboard({session}: { session: AuthSession }) {
             return
         }
         const [sessionResult, configResult] = await Promise.all([
-            client.from('sessions').select('id,played_at,session_players(member_id,final_rank,member:members(name))').eq('season_id', selectedSeasonId),
+            client.from('sessions').select('id,played_at,status,session_players(member_id,final_rank,member:members(name))').eq('season_id', selectedSeasonId),
             client.from('season_configurations').select('points_by_rank').eq('season_id', selectedSeasonId).single(),
         ])
         if (sessionResult.error || configResult.error) {
@@ -238,6 +241,19 @@ export function Dashboard({session}: { session: AuthSession }) {
             const previous = firstRebuyBySessionAndPlayer.get(key)
             if (previous === undefined || event.sequence_number < previous) firstRebuyBySessionAndPlayer.set(key, event.sequence_number)
         }
+        const reboughtPlayers = new Set((eventResult.data ?? []).map((event) => `${event.session_id}:${event.member_id}`))
+        setSessionResults(games.filter((game) => game.status === 'finished').map((game) => ({
+            playedAt: game.played_at,
+            players: (game.session_players as unknown as Array<{
+                member_id: string;
+                final_rank: number | null;
+                member: { name: string } | null
+            }>).filter((player) => player.member && player.final_rank !== null).map((player) => ({
+                name: player.member!.name,
+                rank: player.final_rank!,
+                rebought: reboughtPlayers.has(`${game.id}:${player.member_id}`),
+            })),
+        })))
         const rows = games.flatMap((game) => {
             return (game.session_players as unknown as Array<{
                 member_id: string;
@@ -511,12 +527,14 @@ export function Dashboard({session}: { session: AuthSession }) {
                                              canEdit={Boolean(canEdit)} busy={busy} members={members}
                                              onCreateSession={createSession} onRecord={recordEvent}
                                              onCloseSeason={closeSeason}/>}
-                {tab === 'standings' && <>
-                    <section className="content-panel">
-                        <div className="section-title"><p
-                            className="eyebrow">SAISON {seasonLabel(season.start_year)}</p><h1>Classement général</h1>
-                           </div>
-                        {role === 'organizer' && <div className="public-link-tools">
+                {tab === 'standings' && <StandingsView
+                    data={{
+                        season,
+                        standings,
+                        sevenTwoStandings,
+                        sessionResults,
+                    }}
+                    actions={role === 'organizer' ? <div className="public-link-tools">
                             <button className="secondary-button" disabled={busy}
                                     onClick={() => void createPublicLink()}>Générer un lien invité
                             </button>
@@ -527,32 +545,7 @@ export function Dashboard({session}: { session: AuthSession }) {
                                     </button>
                                     <button className="danger-button" onClick={() => void revokePublicLink()}>Révoquer
                                     </button>
-                                </div>}</div>}
-                        <div className="standings-list">{standings.length ? standings.map((row, index) => <article
-                                className="standing-row" key={row.memberId}><b
-                                className="standing-place">{String(index + 1).padStart(2, '0')}</b>
-                                <div className="standing-info">
-                                    <strong>{row.name}</strong><small>{row.sessions.map((item) => `${new Date(`${item.sessionDate}T12:00:00`).toLocaleDateString('fr-FR', {
-                                    day: 'numeric',
-                                    month: 'numeric'
-                                })} · ${item.rank}e${item.rebought ? ' (R)' : ''}`).join('  /  ')}</small></div>
-                                <strong className="standing-points">{row.points}<small> pts</small></strong></article>) :
-                            <p className="empty-copy">Le classement apparaîtra après première journée
-                                terminée.</p>}</div>
-                    </section>
-                    <section className="content-panel">
-                        <div className="section-title"><h2>Victoires avec
-                            7/2</h2></div>
-                        <div
-                            className="standings-list">{sevenTwoStandings.length ? sevenTwoStandings.map((row, index) =>
-                                <article className="standing-row" key={row.memberId}><b
-                                    className="standing-place">{String(index + 1).padStart(2, '0')}</b>
-                                    <div className="standing-info"><strong>{row.name}</strong></div>
-                                    <strong className="standing-points">{row.wins}<small> mains</small></strong>
-                                </article>) :
-                            <p className="empty-copy">Aucune main gagnée avec 7/2 enregistrée cette saison.</p>}</div>
-                    </section>
-                </>}
+                                </div>}</div> : undefined}/>}
                 {tab === 'members' && <section className="content-panel">
                     <div className="section-title"><p className="eyebrow">COMMUNAUTÉ</p><h1>Les membres</h1><p>Joueurs
                         disponibles pour les prochaines journées.</p></div>

@@ -28,7 +28,12 @@ describe('PublicStandings', () => {
 
     const results = await screen.findByRole('heading', {name: 'Résultats des journées'})
     const section = results.closest('section')!
-    expect(within(section).getByText(/Ada.*Benoit\s+\(R\)/)).toBeTruthy()
+    const resultRows = within(section).getAllByRole('listitem')
+    expect(resultRows).toHaveLength(2)
+    expect(within(resultRows[0]).getByText('1e')).toBeTruthy()
+    expect(within(resultRows[0]).getByText('Ada')).toBeTruthy()
+    expect(within(resultRows[1]).getByText('2e')).toBeTruthy()
+    expect(within(resultRows[1]).getByText('Benoit (R)')).toBeTruthy()
     expect(screen.queryByText(/recave/i)).toBeNull()
   })
 })
