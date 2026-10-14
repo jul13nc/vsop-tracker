@@ -1,2 +1,0 @@
--- Create the first organizer account through Supabase Auth, then promote it:
--- update public.profiles set role = 'organizer' where email = 'organizer@example.com';
