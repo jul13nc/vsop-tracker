@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginPage() {
@@ -44,6 +44,9 @@ export default function LoginPage() {
           autoComplete="current-password"
           required
         />
+        <div style={{ marginTop: 9, textAlign: "right" }}>
+          <Link to="/admin/forgot-password">Mot de passe oublié ?</Link>
+        </div>
         {error && <p style={{ color: "#ffbfb5" }}>{error}</p>}
         <div style={{ marginTop: 16 }}>
           <button className="btn btn--block" disabled={busy}>

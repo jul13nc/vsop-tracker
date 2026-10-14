@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 // Admin
 import LoginPage from "./features/admin/LoginPage";
+import ForgotPasswordPage from "./features/admin/ForgotPasswordPage";
+import ResetPasswordPage from "./features/admin/ResetPasswordPage";
 import AdminLayout from "./features/admin/AdminLayout";
 import SeasonsPage from "./features/admin/seasons/SeasonsPage";
 import SeasonEditorPage from "./features/admin/seasons/SeasonEditorPage";
@@ -46,6 +48,8 @@ export default function App() {
 
       {/* Admin */}
       <Route path="/admin/login" element={<LoginPage />} />
+      <Route path="/admin/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/admin/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/admin"
         element={

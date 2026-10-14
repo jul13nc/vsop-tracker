@@ -13,6 +13,8 @@ interface AuthValue {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string, redirectTo: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue>({
@@ -20,6 +22,8 @@ const AuthContext = createContext<AuthValue>({
   loading: true,
   signIn: async () => {},
   signOut: async () => {},
+  requestPasswordReset: async () => {},
+  updatePassword: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -49,8 +53,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }
 
+  async function requestPasswordReset(email: string, redirectTo: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) throw error;
+  }
+
+  async function updatePassword(password: string) {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+  }
+
   return (
-    <AuthContext.Provider value={{ session, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        loading,
+        signIn,
+        signOut,
+        requestPasswordReset,
+        updatePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
