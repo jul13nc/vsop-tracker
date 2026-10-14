@@ -4,6 +4,7 @@ import { listEvents } from "../../api/events";
 import { listPlayers } from "../../api/players";
 import { useAsync } from "../../hooks/useAsync";
 import { sevenTwoCounts } from "../../domain/sevenTwo";
+import { computePayoutRanking, replayEvents } from "../../domain/ranking";
 import type { GamedayPlayer, Player } from "../../types/domain";
 
 interface ResultsData {
@@ -14,6 +15,8 @@ interface ResultsData {
     status: string;
     rows: GamedayPlayer[];
     sevenTwoByPlayer: Record<string, number>;
+    dayRankByPlayer: Record<string, number>;
+    rebuyCountByPlayer: Record<string, number>;
   }[];
   players: Player[];
 }
@@ -36,6 +39,14 @@ async function load(seasonId: string): Promise<ResultsData> {
           .filter((r) => r.final_rank !== null)
           .sort((a, b) => (a.final_rank ?? 0) - (b.final_rank ?? 0)),
         sevenTwoByPlayer: Object.fromEntries(sevenTwoCounts(events)),
+        dayRankByPlayer: Object.fromEntries(
+          computePayoutRanking(gamedayPlayers.map((row) => row.player_id), events)
+            .map((row) => [row.playerId, row.rank]),
+        ),
+        rebuyCountByPlayer: Object.fromEntries(
+          [...replayEvents(gamedayPlayers.map((row) => row.player_id), events)]
+            .map(([playerId, state]) => [playerId, state.rebuys]),
+        ),
       };
     }),
   );
@@ -69,7 +80,7 @@ export default function ResultsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Rang</th>
+                  <th>Rang championnat</th>
                   <th>Joueur</th>
                   <th>7/2</th>
                   <th>Points</th>
@@ -80,10 +91,8 @@ export default function ResultsPage() {
                   <tr key={r.player_id}>
                     <td>{r.final_rank}</td>
                     <td>
-                      {nameOf(r.player_id)}{" "}
-                      {r.rebuys > 0 && (
-                        <span className="badge badge--rebuy">R×{r.rebuys}</span>
-                      )}
+                      {nameOf(r.player_id)} - {g.dayRankByPlayer[r.player_id] ?? "—"}
+                      {(g.rebuyCountByPlayer[r.player_id] ?? 0) > 0 ? " (R)" : ""}
                     </td>
                     <td>{g.sevenTwoByPlayer[r.player_id] ?? '-'}</td>
                     <td>{r.points} pts</td>
