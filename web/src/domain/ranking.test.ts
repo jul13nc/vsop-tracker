@@ -3,6 +3,7 @@ import {
   computeGamedayRanking,
   computePayoutRanking,
   playersRemaining,
+  rebuyOrderByPlayer,
   replayEvents,
   totalRebuys,
 } from "./ranking";
@@ -121,6 +122,28 @@ describe("replayEvents", () => {
     const a = state.get("a")!;
     expect(a.rebuys).toBe(2);
     expect(a.firstRebuyOrder).toBe(1);
+  });
+});
+
+describe("rebuyOrderByPlayer", () => {
+  it("numbers players by their first active rebuy and ignores undone rebuys", () => {
+    reset();
+    const players = ["a", "b", "c"];
+    const undoneRebuy = ev("rebuy", "c");
+    const events = [
+      undoneRebuy,
+      ev("undo", "c", { undoEventId: undoneRebuy.id }),
+      ev("rebuy", "b"),
+      ev("rebuy", "a"),
+      ev("rebuy", "b"),
+    ];
+
+    expect(rebuyOrderByPlayer(players, events)).toEqual(
+      new Map([
+        ["b", 1],
+        ["a", 2],
+      ]),
+    );
   });
 });
 

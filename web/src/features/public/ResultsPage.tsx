@@ -4,7 +4,11 @@ import { listEvents } from "../../api/events";
 import { listPlayers } from "../../api/players";
 import { useAsync } from "../../hooks/useAsync";
 import { sevenTwoCounts } from "../../domain/sevenTwo";
-import { computePayoutRanking, replayEvents } from "../../domain/ranking";
+import {
+  computePayoutRanking,
+  rebuyOrderByPlayer,
+  replayEvents,
+} from "../../domain/ranking";
 import type { GamedayPlayer, Player } from "../../types/domain";
 
 interface ResultsData {
@@ -17,6 +21,7 @@ interface ResultsData {
     sevenTwoByPlayer: Record<string, number>;
     dayRankByPlayer: Record<string, number>;
     rebuyCountByPlayer: Record<string, number>;
+    rebuyOrderByPlayer: Record<string, number>;
   }[];
   players: Player[];
 }
@@ -46,6 +51,12 @@ async function load(seasonId: string): Promise<ResultsData> {
         rebuyCountByPlayer: Object.fromEntries(
           [...replayEvents(gamedayPlayers.map((row) => row.player_id), events)]
             .map(([playerId, state]) => [playerId, state.rebuys]),
+        ),
+        rebuyOrderByPlayer: Object.fromEntries(
+          rebuyOrderByPlayer(
+            gamedayPlayers.map((row) => row.player_id),
+            events,
+          ),
         ),
       };
     }),
@@ -92,7 +103,9 @@ export default function ResultsPage() {
                     <td>{r.final_rank}</td>
                     <td>
                       {nameOf(r.player_id)} - {g.dayRankByPlayer[r.player_id] ?? "—"}
-                      {(g.rebuyCountByPlayer[r.player_id] ?? 0) > 0 ? " (R)" : ""}
+                      {(g.rebuyCountByPlayer[r.player_id] ?? 0) > 0
+                        ? ` (R${g.rebuyOrderByPlayer[r.player_id]})`
+                        : ""}
                     </td>
                     <td>{g.sevenTwoByPlayer[r.player_id] ?? '-'}</td>
                     <td>{r.points} pts</td>

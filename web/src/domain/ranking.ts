@@ -148,6 +148,23 @@ export function computePayoutRanking(
   }));
 }
 
+/**
+ * Assign R1, R2, ... by each player's first active rebuy event.
+ * A player's later rebuys do not change their label; undone rebuys are ignored.
+ */
+export function rebuyOrderByPlayer(
+  playerIds: string[],
+  events: GameEvent[],
+): Map<string, number> {
+  const firstRebuys = [...replayEvents(playerIds, events).values()]
+    .filter((player) => player.firstRebuyOrder !== null)
+    .sort((a, b) => (a.firstRebuyOrder ?? 0) - (b.firstRebuyOrder ?? 0));
+
+  return new Map(
+    firstRebuys.map((player, index) => [player.playerId, index + 1]),
+  );
+}
+
 /** Number of players still alive (not eliminated). */
 export function playersRemaining(
   playerIds: string[],
