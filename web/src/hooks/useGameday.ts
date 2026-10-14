@@ -39,7 +39,8 @@ async function load(gamedayId: string): Promise<GamedayBundle> {
 /** Load a gameday bundle and keep it fresh via realtime. */
 export function useGameday(gamedayId: string, pollIntervalMs = 2500) {
   const state = useAsync(() => load(gamedayId), [gamedayId]);
-  const onChange = useCallback(() => state.reload(), [state]);
+  const { reload } = state;
+  const onChange = useCallback(() => reload(), [reload]);
   useRealtimeGameday(gamedayId, onChange);
 
   // Realtime is the fast path. Polling is a fallback for clients where
@@ -47,9 +48,9 @@ export function useGameday(gamedayId: string, pollIntervalMs = 2500) {
   // admin entry screen opts out to avoid background reloads while operating.
   useEffect(() => {
     if (pollIntervalMs <= 0) return;
-    const poll = window.setInterval(() => state.reload(), pollIntervalMs);
+    const poll = window.setInterval(reload, pollIntervalMs);
     return () => window.clearInterval(poll);
-  }, [state.reload, pollIntervalMs]);
+  }, [reload, pollIntervalMs]);
 
   return state;
 }

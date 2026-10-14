@@ -10,7 +10,6 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 const url = import.meta.env.DEV ? `${window.location.origin}/supabase` : envUrl;
 
 if (!url || !anonKey) {
-  // eslint-disable-next-line no-console
   console.error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY");
 }
 
