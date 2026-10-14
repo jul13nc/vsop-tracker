@@ -9,7 +9,7 @@ import { resolvePayout, totalBetEuros } from "../../domain/payout";
 
 export default function PublicPayoutPage() {
   const { seasonId, gamedayId } = useParams();
-  const { data, loading, error } = useGameday(gamedayId!);
+  const { data, loading, error } = useGameday(gamedayId!, 0);
 
   if (loading) return <div className="app">Chargement du payout…</div>;
   if (error) return <div className="app">Erreur : {error.message}</div>;

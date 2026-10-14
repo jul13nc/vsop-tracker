@@ -12,7 +12,7 @@ import { validateGameday } from "../../../api/standings";
 export default function ValidatePage() {
   const { gamedayId } = useParams();
   const navigate = useNavigate();
-  const { data, loading, error, reload } = useGameday(gamedayId!);
+  const { data, loading, error, reload } = useGameday(gamedayId!, 0);
 
   if (loading) return <div className="app">Chargement…</div>;
   if (error) return <div className="app">Erreur : {error.message}</div>;
