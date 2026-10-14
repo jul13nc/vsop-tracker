@@ -8,9 +8,8 @@ export default function PublicHome() {
     <div className="app">
       <header className="public-hero">
         <div className="brand-mark brand-mark--hero" aria-hidden="true">♠</div>
-        <p className="eyebrow">SAISON APRÈS SAISON</p>
-        <h1>VSOP Poker</h1>
-        <p className="muted">Le championnat. Chaque main compte.</p>
+        <h1>VSOP</h1>
+        <p className="muted">Comme les WSOP, avec un petit truc en moins.</p>
       </header>
       {loading && <p>Chargement…</p>}
       {error && <p style={{ color: "#ffbfb5" }}>{error.message}</p>}

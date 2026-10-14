@@ -9,7 +9,7 @@ export default function AdminLayout() {
         <h1 className="brand-lockup" style={{ margin: 0 }}>
           <Link to="/admin" style={{ textDecoration: "none" }}>
             <span className="brand-mark" aria-hidden="true">♠</span>
-            <span>VSOP <small>CHAMPIONSHIP</small></span>
+            <span>VSOP</span>
           </Link>
         </h1>
         <button className="btn btn--ghost" onClick={() => signOut()}>
