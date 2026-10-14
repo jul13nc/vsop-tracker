@@ -216,6 +216,41 @@ export default function SeasonEditorPage() {
         <h2>{draft.label}</h2>
         {readOnly && <span className="badge">clôturée (lecture seule)</span>}
       </div>
+      {!readOnly && (
+        <Link
+          className="btn btn--block"
+          to={`/admin/seasons/${draft.id}/gameday/new`}
+          style={{ marginBottom: 16 }}
+        >
+          + Nouvelle journée
+        </Link>
+      )}
+      <h3>Journées</h3>
+      <div className="card">
+        <table>
+          <tbody>
+            {(gamedays ?? []).map((g) => (
+              <tr key={g.id}>
+                <td>{g.date}</td>
+                <td>
+                  {g.counts_double && <span className="badge">x2</span>}{" "}
+                  <span className="badge">{g.status}</span>
+                </td>
+                <td style={{ textAlign: "right" }}>
+                  <Link className="btn btn--ghost" to={`/admin/gameday/${g.id}/live`}>
+                    Ouvrir
+                  </Link>
+                </td>
+              </tr>
+            ))}
+            {gamedays && gamedays.length === 0 && (
+              <tr>
+                <td className="muted">Aucune journée.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       <div className="card">
         <label>Cave (€)</label>
@@ -268,42 +303,6 @@ export default function SeasonEditorPage() {
         )}
       </div>
 
-      <div className="row spread">
-        <h3>Journées</h3>
-        {!readOnly && (
-          <Link
-            className="btn"
-            to={`/admin/seasons/${draft.id}/gameday/new`}
-          >
-            + Nouvelle journée
-          </Link>
-        )}
-      </div>
-      <div className="card">
-        <table>
-          <tbody>
-            {(gamedays ?? []).map((g) => (
-              <tr key={g.id}>
-                <td>{g.date}</td>
-                <td>
-                  {g.counts_double && <span className="badge">x2</span>}{" "}
-                  <span className="badge">{g.status}</span>
-                </td>
-                <td style={{ textAlign: "right" }}>
-                  <Link className="btn btn--ghost" to={`/admin/gameday/${g.id}/live`}>
-                    Ouvrir
-                  </Link>
-                </td>
-              </tr>
-            ))}
-            {gamedays && gamedays.length === 0 && (
-              <tr>
-                <td className="muted">Aucune journée.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
       <button className="btn btn--ghost" onClick={() => reloadGd()}>
         Rafraîchir
       </button>

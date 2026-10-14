@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useParams } from "react-router-dom";
 import { getSeason } from "../../api/seasons";
 import { getActiveGameday } from "../../api/gamedays";
 import { useAsync } from "../../hooks/useAsync";
@@ -13,15 +13,21 @@ export default function PublicLayout() {
 
   return (
     <div className="app">
-      <h1>VSOP · {season?.label ?? seasonId}</h1>
+      <div className="public-heading">
+        <Link to="/pub" className="brand-mark" aria-label="Toutes les saisons">♠</Link>
+        <div>
+          <p className="eyebrow">CHAMPIONNAT VSOP</p>
+          <h1>{season?.label ?? seasonId}</h1>
+        </div>
+      </div>
       <nav className="nav">
-        <NavLink end to={`/c/${seasonId}`}>
+        <NavLink end to={`/pub/${seasonId}`}>
           Classement
         </NavLink>
-        <NavLink to={`/c/${seasonId}/seven-two`}>Classement 7/2</NavLink>
-        <NavLink to={`/c/${seasonId}/results`}>Journées</NavLink>
+        <NavLink to={`/pub/${seasonId}/seven-two`}>Classement 7/2</NavLink>
+        <NavLink to={`/pub/${seasonId}/results`}>Journées</NavLink>
         {active && (
-          <NavLink to={`/c/${seasonId}/clock/${active.id}`}>
+          <NavLink to={`/pub/${seasonId}/clock/${active.id}`}>
             🕐 Horloge live
           </NavLink>
         )}

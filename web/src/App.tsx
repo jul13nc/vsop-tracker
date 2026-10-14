@@ -32,17 +32,17 @@ function RequireAuth({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/c" replace />} />
+      <Route path="/" element={<Navigate to="/pub" replace />} />
 
       {/* Public (no login) */}
-      <Route path="/c" element={<PublicHome />} />
-      <Route path="/c/:seasonId" element={<PublicLayout />}>
+      <Route path="/pub" element={<PublicHome />} />
+      <Route path="/pub/:seasonId" element={<PublicLayout />}>
         <Route index element={<StandingsPage />} />
         <Route path="seven-two" element={<SevenTwoPage />} />
         <Route path="results" element={<ResultsPage />} />
       </Route>
-      <Route path="/c/:seasonId/clock/:gamedayId" element={<PublicClockPage />} />
-      <Route path="/c/:seasonId/payout/:gamedayId" element={<PublicPayoutPage />} />
+      <Route path="/pub/:seasonId/clock/:gamedayId" element={<PublicClockPage />} />
+      <Route path="/pub/:seasonId/payout/:gamedayId" element={<PublicPayoutPage />} />
 
       {/* Admin */}
       <Route path="/admin/login" element={<LoginPage />} />

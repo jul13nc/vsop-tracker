@@ -16,16 +16,16 @@ export default function PublicPayoutPage() {
   if (!data) return null;
 
   if (data.season.id !== seasonId) {
-    return <Navigate to={`/c/${data.season.id}/payout/${data.gameday.id}`} replace />;
+    return <Navigate to={`/pub/${data.season.id}/payout/${data.gameday.id}`} replace />;
   }
   if (data.gameday.status === "validated") {
-    return <Navigate to={`/c/${data.season.id}`} replace />;
+    return <Navigate to={`/pub/${data.season.id}`} replace />;
   }
 
   const playerIds = data.players.map((player) => player.id);
   const remaining = playersRemaining(playerIds, data.events);
   if (remaining !== 1) {
-    return <Navigate to={`/c/${data.season.id}/clock/${data.gameday.id}`} replace />;
+    return <Navigate to={`/pub/${data.season.id}/clock/${data.gameday.id}`} replace />;
   }
 
   const rebuys = totalRebuys(playerIds, data.events);
@@ -79,7 +79,7 @@ export default function PublicPayoutPage() {
         </table>
       </div>
 
-      <Link className="btn btn--ghost" to={`/c/${data.season.id}`}>
+      <Link className="btn btn--ghost" to={`/pub/${data.season.id}`}>
         ← Classement
       </Link>
     </main>

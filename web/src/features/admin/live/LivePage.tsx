@@ -2,7 +2,6 @@ import { Link, useParams } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameday } from "../../../hooks/useGameday";
-import { useClock } from "../../../hooks/useClock";
 import { addEvent, undoLast } from "../../../api/events";
 import { setGamedayStatus } from "../../../api/gamedays";
 import { ensureClock, pauseClock } from "../../../api/clock";
@@ -19,12 +18,7 @@ export default function LivePage() {
   const { gamedayId } = useParams();
   const navigate = useNavigate();
   const finishHandled = useRef(false);
-  const { data, loading, error, reload } = useGameday(gamedayId!);
-  useClock(
-    gamedayId!,
-    data?.season.blind_structure ?? [],
-    data?.season.blind_level_minutes ?? 20,
-  );
+  const { data, loading, error, reload } = useGameday(gamedayId!, 0);
 
   // Mark the gameday "live" on first open so the public clock link appears.
   useEffect(() => {

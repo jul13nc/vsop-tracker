@@ -6,19 +6,29 @@ export default function PublicHome() {
   const { data, loading, error } = useAsync(listSeasons, []);
   return (
     <div className="app">
-      <h1>VSOP Poker</h1>
-      <p className="muted">Championnat — classements &amp; résultats</p>
+      <header className="public-hero">
+        <div className="brand-mark brand-mark--hero" aria-hidden="true">♠</div>
+        <p className="eyebrow">SAISON APRÈS SAISON</p>
+        <h1>VSOP Poker</h1>
+        <p className="muted">Le championnat. Chaque main compte.</p>
+      </header>
       {loading && <p>Chargement…</p>}
       {error && <p style={{ color: "#ffbfb5" }}>{error.message}</p>}
       {(data ?? []).map((s) => (
         <Link
           key={s.id}
-          to={`/c/${s.id}`}
-          className="card row spread"
-          style={{ textDecoration: "none", color: "inherit" }}
+          to={`/pub/${s.id}`}
+          className="season-card row spread"
+          style={{ textDecoration: "none" }}
         >
-          <strong>{s.label}</strong>
-          {s.is_closed && <span className="badge">clôturée</span>}
+          <span>
+            <small className="eyebrow">SAISON</small>
+            <strong>{s.label}</strong>
+          </span>
+          <span className="season-card__action">
+            {s.is_closed && <span className="badge">clôturée</span>}
+            <span aria-hidden="true">↗</span>
+          </span>
         </Link>
       ))}
       {data && data.length === 0 && (

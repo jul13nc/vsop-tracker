@@ -65,11 +65,11 @@ n'ont qu'un accès lecture.
 
 | URL                                   | Accès   | Rôle                         |
 | ------------------------------------- | ------- | ---------------------------- |
-| `/c`                                  | public  | Choix de la saison           |
-| `/c/:season`                          | public  | Classement général           |
-| `/c/:season/seven-two`                | public  | Classement 7/2               |
-| `/c/:season/results`                  | public  | Résultats des journées       |
-| `/c/:season/clock/:gameday`           | public  | Horloge (lecture seule)      |
+| `/pub`                                | public  | Choix de la saison           |
+| `/pub/:season`                        | public  | Classement général           |
+| `/pub/:season/seven-two`              | public  | Classement 7/2               |
+| `/pub/:season/results`                | public  | Résultats des journées       |
+| `/pub/:season/clock/:gameday`         | public  | Horloge (lecture seule)      |
 | `/admin/login`                        | public  | Connexion admin              |
 | `/admin/seasons`                      | admin   | Saisons & config             |
 | `/admin/players`                      | admin   | Membres                      |

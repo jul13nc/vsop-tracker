@@ -6,9 +6,10 @@ export default function AdminLayout() {
   return (
     <div className="app">
       <div className="row spread">
-        <h1 style={{ margin: 0 }}>
+        <h1 className="brand-lockup" style={{ margin: 0 }}>
           <Link to="/admin" style={{ textDecoration: "none" }}>
-            VSOP · Admin
+            <span className="brand-mark" aria-hidden="true">♠</span>
+            <span>VSOP <small>CHAMPIONSHIP</small></span>
           </Link>
         </h1>
         <button className="btn btn--ghost" onClick={() => signOut()}>
@@ -18,7 +19,7 @@ export default function AdminLayout() {
       <nav className="nav">
         <NavLink to="/admin/seasons">Saisons</NavLink>
         <NavLink to="/admin/players">Membres</NavLink>
-        <a href="/c" target="_blank" rel="noreferrer">
+        <a href="/pub" target="_blank" rel="noreferrer">
           Vue publique ↗
         </a>
       </nav>

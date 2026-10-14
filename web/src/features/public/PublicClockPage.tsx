@@ -4,7 +4,11 @@ import { useClock } from "../../hooks/useClock";
 import ClockView from "../../components/ClockView";
 import { averageStack } from "../../domain/chips";
 import { playersRemaining, totalRebuys } from "../../domain/ranking";
-import { paidPlacesForTotal, totalBetEuros } from "../../domain/payout";
+import {
+  paidPlacesForTotal,
+  resolvePayout,
+  totalBetEuros,
+} from "../../domain/payout";
 
 export default function PublicClockPage() {
   const { gamedayId } = useParams();
@@ -20,7 +24,7 @@ export default function PublicClockPage() {
 
   // Once the gameday is validated, switch to the standings.
   if (data.gameday.status === "validated") {
-    return <Navigate to={`/c/${data.season.id}`} replace />;
+    return <Navigate to={`/pub/${data.season.id}`} replace />;
   }
 
   const ids = data.players.map((p) => p.id);
@@ -28,7 +32,7 @@ export default function PublicClockPage() {
   if (remaining === 1) {
     return (
       <Navigate
-        to={`/c/${data.season.id}/payout/${data.gameday.id}`}
+        to={`/pub/${data.season.id}/payout/${data.gameday.id}`}
         replace
       />
     );
@@ -43,18 +47,30 @@ export default function PublicClockPage() {
     data.season.buyin_cents,
   );
   const paidPlaces = paidPlacesForTotal(totalBet, data.season.payout_table);
+  let payout: { rank: number; amount: number }[] = [];
+  try {
+    payout = resolvePayout(totalBet, data.season.payout_table);
+  } catch {
+    // Payout may not be configured for this total yet.
+  }
+  const upcomingLevels = data.season.blind_structure.filter(
+    (level) => level.level > (state.level?.level ?? 0),
+  );
 
   return (
     <ClockView
       state={state}
       playersRemaining={remaining}
+      startingPlayers={data.players.length}
       averageStack={avg}
       isBubble={paidPlaces > 0 && remaining === paidPlaces + 1}
+      payout={payout}
+      upcomingLevels={upcomingLevels}
       flash={state.levelComplete}
       playBeep
     >
       <div className="clock__controls">
-        <Link className="btn btn--ghost" to={`/c/${data.season.id}`}>
+        <Link className="btn btn--ghost" to={`/pub/${data.season.id}`}>
           ← Classement
         </Link>
       </div>
