@@ -28,7 +28,7 @@ export function StandingsView({data, actions}: {
                 className="standing-row" key={row.memberId}><b
                 className="standing-place">{String(index + 1).padStart(2, '0')}</b>
                 <div className="standing-info"><strong>{row.name}</strong><small>{row.sessions.map((item) =>
-                    `${new Date(`${item.sessionDate}T12:00:00`).toLocaleDateString('fr-FR', {day: 'numeric', month: 'numeric'})} · ${item.rank}e${item.rebought ? ' (R)' : ''}`
+                    `${new Date(`${item.sessionDate}T12:00:00`).toLocaleDateString('fr-FR', {day: 'numeric', month: 'numeric'})} · ${item.rank}e`
                 ).join('  /  ')}</small></div>
                 <strong className="standing-points">{row.points}<small> pts</small></strong></article>) :
                 <p className="empty-copy">Le classement apparaîtra après première journée terminée.</p>}</div>

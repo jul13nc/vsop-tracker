@@ -1,4 +1,5 @@
 create extension if not exists pgcrypto;
+create extension if not exists unaccent with schema extensions;
 
 create type public.account_role as enum ('organizer', 'reader');
 create type public.season_status as enum ('open', 'closed');
@@ -84,7 +85,7 @@ $$;
 alter function public.invite_reader(text) owner to postgres;
 
 create table public.seasons (
-  id uuid primary key default gen_random_uuid(),
+  id integer primary key,
   start_year integer not null unique check (start_year between 2000 and 2198),
   status public.season_status not null default 'open',
   created_at timestamptz not null default now()
@@ -92,14 +93,14 @@ create table public.seasons (
 
 create table public.public_standings_links (
   token_hash text primary key,
-  season_id uuid not null references public.seasons(id) on delete cascade,
+  season_id integer not null references public.seasons(id) on delete cascade,
   created_by uuid not null references auth.users(id),
   created_at timestamptz not null default now(),
   revoked_at timestamptz
 );
 
 create table public.season_configurations (
-  season_id uuid primary key references public.seasons(id) on delete cascade,
+  season_id integer primary key references public.seasons(id) on delete cascade,
   buy_in numeric(8,2) not null default 10 check (buy_in > 0),
   chips jsonb not null default '[{"label":"Vert","value":25,"quantity":12},{"label":"Noir","value":100,"quantity":12},{"label":"Violet","value":500,"quantity":7}]'::jsonb,
   payout_table jsonb not null default '{"50":{"1":30,"2":20},"60":{"1":40,"2":20},"70":{"1":40,"2":20,"3":10},"80":{"1":40,"2":30,"3":10},"90":{"1":50,"2":30,"3":10},"100":{"1":60,"2":30,"3":10},"110":{"1":70,"2":30,"3":10},"120":{"1":70,"2":40,"3":10},"130":{"1":80,"2":40,"3":10},"140":{"1":90,"2":40,"3":10}}'::jsonb,
@@ -110,24 +111,34 @@ create table public.season_configurations (
   check (jsonb_typeof(points_by_rank) = 'object')
 );
 
+create function public.member_key(p_name text)
+returns text language plpgsql stable set search_path = '' as $$
+declare v_key text;
+begin
+  v_key := regexp_replace(extensions.unaccent(lower(split_part(trim(p_name), ' ', 1))), '[^a-z0-9-]', '', 'g');
+  if v_key = '' then raise exception 'Player first name must contain ASCII letters or digits' using errcode='22023'; end if;
+  return v_key;
+end;
+$$;
+
 create table public.members (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   name text not null unique check (length(trim(name)) between 1 and 80),
   created_at timestamptz not null default now()
 );
 
 create table public.sessions (
-  id uuid primary key default gen_random_uuid(),
-  season_id uuid not null references public.seasons(id),
-  played_at date not null,
+  id text primary key,
+  season_id integer not null references public.seasons(id),
+  played_at date not null unique,
   status public.session_status not null default 'open',
   configuration_snapshot jsonb not null,
   created_at timestamptz not null default now()
 );
 
 create table public.session_players (
-  session_id uuid not null references public.sessions(id) on delete cascade,
-  member_id uuid not null references public.members(id),
+  session_id text not null references public.sessions(id) on delete cascade,
+  member_id text not null references public.members(id),
   status public.player_status not null default 'active',
   current_rank integer,
   final_rank integer,
@@ -140,8 +151,8 @@ create table public.session_players (
 
 create table public.session_events (
   id bigint generated always as identity primary key,
-  session_id uuid not null,
-  member_id uuid not null,
+  session_id text not null,
+  member_id text not null,
   sequence_number bigint not null,
   event_type public.session_event_type not null,
   amount numeric(8,2) not null default 0 check (amount >= 0),
@@ -167,29 +178,72 @@ $$;
 create trigger finish_session_guard before update of status on public.sessions
   for each row execute function public.touch_session();
 
+create function public.set_member_identifier()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    new.id := public.member_key(new.name);
+  elsif public.member_key(new.name) <> old.id then
+    raise exception 'Player identifier must match first name' using errcode='55000';
+  elsif new.id is distinct from old.id then
+    raise exception 'Player identifier is immutable' using errcode='55000';
+  end if;
+  return new;
+end;
+$$;
+create trigger set_member_identifier before insert or update on public.members
+  for each row execute function public.set_member_identifier();
+
+create function public.set_season_identifier()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then new.id := new.start_year;
+  elsif new.id is distinct from old.id or new.start_year is distinct from old.start_year then
+    raise exception 'Season identifier is immutable' using errcode='55000';
+  end if;
+  return new;
+end;
+$$;
+create trigger set_season_identifier before insert or update on public.seasons
+  for each row execute function public.set_season_identifier();
+
+create function public.set_session_identifier()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then new.id := to_char(new.played_at, 'YYYYMMDD');
+  elsif new.id is distinct from old.id or new.played_at is distinct from old.played_at then
+    raise exception 'Session identifier is immutable' using errcode='55000';
+  end if;
+  return new;
+end;
+$$;
+create trigger set_session_identifier before insert or update on public.sessions
+  for each row execute function public.set_session_identifier();
+
 create function public.create_season(p_start_year integer)
-returns uuid language plpgsql security definer set search_path = '' as $$
-declare v_id uuid;
+returns integer language plpgsql security definer set search_path = '' as $$
 begin
   if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode = '42501'; end if;
   if p_start_year not between 2000 and 2198 then raise exception 'School year must be between 2000 and 2198' using errcode = '22023'; end if;
-  insert into public.seasons(start_year) values (p_start_year) returning id into v_id;
-  insert into public.season_configurations(season_id) values (v_id);
-  return v_id;
+  insert into public.seasons(id, start_year) values (p_start_year, p_start_year);
+  insert into public.season_configurations(season_id) values (p_start_year);
+  return p_start_year;
 end;
 $$;
 alter function public.create_season(integer) owner to postgres;
 
-create function public.create_session(p_season_id uuid, p_played_at date, p_member_ids uuid[])
-returns uuid language plpgsql security definer set search_path = '' as $$
-declare v_id uuid; v_config jsonb;
+create function public.create_session(p_season_id integer, p_played_at date, p_member_ids text[])
+returns text language plpgsql security definer set search_path = '' as $$
+declare v_id text; v_config jsonb;
 begin
   if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode = '42501'; end if;
   if not exists(select 1 from public.seasons where id=p_season_id and status='open') then raise exception 'Open season required' using errcode = '22023'; end if;
   if p_member_ids is null or cardinality(p_member_ids) = 0 then raise exception 'Select at least one participant' using errcode = '22023'; end if;
+  if exists(select 1 from public.sessions where played_at=p_played_at) then raise exception 'A session already exists on this date' using errcode = '23505'; end if;
   select to_jsonb(c) into v_config from public.season_configurations c where c.season_id=p_season_id;
-  insert into public.sessions(season_id, played_at, configuration_snapshot)
-  values (p_season_id,p_played_at,v_config) returning id into v_id;
+  v_id := to_char(p_played_at, 'YYYYMMDD');
+  insert into public.sessions(id, season_id, played_at, configuration_snapshot)
+  values (v_id,p_season_id,p_played_at,v_config);
   insert into public.session_players(session_id,member_id)
   select v_id, member_id from (select distinct unnest(p_member_ids) as member_id) ids
   where exists(select 1 from public.members m where m.id=ids.member_id);
@@ -199,9 +253,9 @@ begin
   return v_id;
 end;
 $$;
-alter function public.create_session(uuid,date,uuid[]) owner to postgres;
+alter function public.create_session(integer,date,text[]) owner to postgres;
 
-create function public.record_session_event(p_session_id uuid, p_member_id uuid, p_event_type public.session_event_type)
+create function public.record_session_event(p_session_id text, p_member_id text, p_event_type public.session_event_type)
 returns public.session_events language plpgsql security definer set search_path = '' as $$
 declare
   v_session public.sessions;
@@ -211,7 +265,6 @@ declare
   v_sequence bigint;
   v_result public.session_events;
   v_active integer;
-  v_season_id uuid;
 begin
   if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode = '42501'; end if;
   select * into v_session from public.sessions where id=p_session_id for update;
@@ -252,16 +305,15 @@ begin
       set final_rank=places.final_rank, current_rank=places.final_rank
       from final_places places
       where player.session_id=p_session_id and player.member_id=places.member_id;
-      select season_id into v_season_id from public.sessions where id=p_session_id;
       update public.sessions set status='finished' where id=p_session_id;
     end if;
   end if;
   return v_result;
 end;
 $$;
-alter function public.record_session_event(uuid,uuid,public.session_event_type) owner to postgres;
+alter function public.record_session_event(text,text,public.session_event_type) owner to postgres;
 
-create function public.close_season(p_season_id uuid)
+create function public.close_season(p_season_id integer)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
   if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode = '42501'; end if;
@@ -270,9 +322,9 @@ begin
   if not found then raise exception 'Open season not found' using errcode = '22023'; end if;
 end;
 $$;
-alter function public.close_season(uuid) owner to postgres;
+alter function public.close_season(integer) owner to postgres;
 
-create function public.create_public_standings_link(p_season_id uuid)
+create function public.create_public_standings_link(p_season_id integer)
 returns text language plpgsql security definer set search_path = '' as $$
 declare v_token text;
 begin
@@ -284,7 +336,7 @@ begin
   return v_token;
 end;
 $$;
-alter function public.create_public_standings_link(uuid) owner to postgres;
+alter function public.create_public_standings_link(integer) owner to postgres;
 
 create function public.revoke_public_standings_link(p_token text)
 returns void language plpgsql security definer set search_path = '' as $$
@@ -299,7 +351,7 @@ alter function public.revoke_public_standings_link(text) owner to postgres;
 
 create function public.read_public_standings(p_token text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v_season_id uuid; v_result jsonb;
+declare v_season_id integer; v_result jsonb;
 begin
   select season_id into v_season_id from public.public_standings_links
   where token_hash=encode(extensions.digest(p_token,'sha256'),'hex') and revoked_at is null;
@@ -377,7 +429,14 @@ begin
           ) entry
         ),0),
         'players',coalesce((
-          select jsonb_agg(jsonb_build_object('name',member.name,'rank',player.final_rank) order by player.final_rank)
+          select jsonb_agg(jsonb_build_object(
+            'name',member.name,
+            'rank',player.final_rank,
+            'rebought',exists(
+              select 1 from public.session_events event
+              where event.session_id=game.id and event.member_id=player.member_id and event.event_type='rebuy'
+            )
+          ) order by player.final_rank)
           from public.session_players player
           join public.members member on member.id=player.member_id
           where player.session_id=game.id
@@ -419,9 +478,80 @@ $$;
 create trigger validate_season_configuration before insert or update on public.season_configurations
   for each row execute function public.validate_season_configuration();
 
+create function public.undo_session_event(p_event_id bigint)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  v_session_id text;
+  v_season_status public.season_status;
+  v_event record;
+  v_rank integer;
+  v_active integer;
+  v_last_event_type public.session_event_type;
+begin
+  if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode='42501'; end if;
+  select event.session_id, season.status into v_session_id, v_season_status
+  from public.session_events event
+  join public.sessions session on session.id=event.session_id
+  join public.seasons season on season.id=session.season_id
+  where event.id=p_event_id for update of session;
+  if not found then raise exception 'Session event not found' using errcode='22023'; end if;
+  if v_season_status='closed' then raise exception 'Season is read only' using errcode='55000'; end if;
+
+  perform set_config('app.undo_session_event', v_session_id, true);
+  update public.sessions set status='open' where id=v_session_id and status='finished';
+  delete from public.session_events where id=p_event_id;
+  update public.session_players set status='active',current_rank=null,final_rank=null,first_rebuy_rank=null where session_id=v_session_id;
+
+  for v_event in select * from public.session_events where session_id=v_session_id order by sequence_number loop
+    v_last_event_type := v_event.event_type;
+    if v_event.event_type='elimination' then
+      select count(*) into v_rank from public.session_players where session_id=v_session_id and status='active';
+      if v_rank < 2 then raise exception 'Cannot undo event: later eliminations are inconsistent' using errcode='22023'; end if;
+      update public.session_players set status='eliminated',current_rank=v_rank,final_rank=v_rank
+      where session_id=v_session_id and member_id=v_event.member_id and status='active';
+      if not found then raise exception 'Cannot undo event: later eliminations are inconsistent' using errcode='22023'; end if;
+      update public.session_events set rank_at_event=v_rank where id=v_event.id;
+    elsif v_event.event_type='rebuy' then
+      select current_rank into v_rank from public.session_players
+      where session_id=v_session_id and member_id=v_event.member_id and status='eliminated';
+      if not found then raise exception 'Cannot undo event: later rebuys are inconsistent' using errcode='22023'; end if;
+      update public.session_players set status='active',first_rebuy_rank=coalesce(first_rebuy_rank,v_rank),final_rank=null
+      where session_id=v_session_id and member_id=v_event.member_id;
+      update public.session_events set rank_at_event=v_rank where id=v_event.id;
+    else
+      if not exists(select 1 from public.session_players where session_id=v_session_id and member_id=v_event.member_id and status='active') then
+        raise exception 'Cannot undo event: later 7/2 event is inconsistent' using errcode='22023';
+      end if;
+      update public.session_events set rank_at_event=null where id=v_event.id;
+    end if;
+  end loop;
+
+  select count(*) into v_active from public.session_players where session_id=v_session_id and status='active';
+  if v_active=1 and v_last_event_type='elimination' then
+    update public.session_players set final_rank=1,current_rank=1 where session_id=v_session_id and status='active';
+    with latest_eliminations as (
+      select member_id,max(sequence_number) as last_out from public.session_events
+      where session_id=v_session_id and event_type='elimination' group by member_id
+    ), final_places as (
+      select member_id,row_number() over(order by last_out desc)+1 as final_rank from latest_eliminations
+    )
+    update public.session_players player set final_rank=places.final_rank,current_rank=places.final_rank
+    from final_places places where player.session_id=v_session_id and player.member_id=places.member_id;
+    update public.sessions set status='finished' where id=v_session_id;
+  end if;
+  perform set_config('app.undo_session_event', '', true);
+end;
+$$;
+alter function public.undo_session_event(bigint) owner to postgres;
+
 create function public.guard_championship_write()
 returns trigger language plpgsql security definer set search_path = '' as $$
-declare v_season_id uuid; v_status public.season_status; v_session_id uuid; v_session_status public.session_status;
+declare
+  v_season_id integer;
+  v_status public.season_status;
+  v_session_id text;
+  v_session_status public.session_status;
+  v_undo_session_id text := current_setting('app.undo_session_event', true);
 begin
   if public.current_role() is distinct from 'organizer' then raise exception 'Organizer role required' using errcode='42501'; end if;
   if tg_table_name='members' then
@@ -441,7 +571,8 @@ begin
   if v_session_id is not null then
     if tg_table_name='sessions' then
       select status into v_session_status from public.sessions where id=v_session_id;
-      if v_session_status='finished' and tg_op='UPDATE' and old.status='finished' then
+      if v_session_status='finished' and tg_op='UPDATE' and old.status='finished'
+         and not (new.status='open' and v_undo_session_id=v_session_id) then
         raise exception 'Session is read only' using errcode='55000';
       end if;
       if tg_op='UPDATE' and old.status='open' and new.status='open'
@@ -451,7 +582,9 @@ begin
       end if;
     else
       select status into v_session_status from public.sessions where id=v_session_id;
-      if v_session_status='finished' then raise exception 'Session is read only' using errcode='55000'; end if;
+      if v_session_status='finished' and not (tg_table_name='session_events' and tg_op='DELETE' and v_undo_session_id=v_session_id) then
+        raise exception 'Session is read only' using errcode='55000';
+      end if;
     end if;
   end if;
   if tg_op='DELETE' then return old; else return new; end if;
@@ -500,10 +633,10 @@ grant update on public.seasons to authenticated;
 grant insert, update, delete on public.members to authenticated;
 grant update on public.sessions, public.session_players to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
-revoke all on function public.create_season(integer), public.create_session(uuid,date,uuid[]), public.record_session_event(uuid,uuid,public.session_event_type), public.close_season(uuid), public.invite_reader(text) from public, anon;
-grant execute on function public.create_season(integer), public.create_session(uuid,date,uuid[]), public.record_session_event(uuid,uuid,public.session_event_type), public.close_season(uuid), public.invite_reader(text), public.current_role() to authenticated;
-revoke all on function public.create_public_standings_link(uuid), public.revoke_public_standings_link(text), public.read_public_standings(text) from public, anon;
-grant execute on function public.create_public_standings_link(uuid), public.revoke_public_standings_link(text) to authenticated;
+revoke all on function public.create_season(integer), public.create_session(integer,date,text[]), public.record_session_event(text,text,public.session_event_type), public.close_season(integer), public.invite_reader(text) from public, anon;
+grant execute on function public.create_season(integer), public.create_session(integer,date,text[]), public.record_session_event(text,text,public.session_event_type), public.close_season(integer), public.invite_reader(text), public.current_role() to authenticated;
+revoke all on function public.create_public_standings_link(integer), public.revoke_public_standings_link(text), public.read_public_standings(text), public.undo_session_event(bigint) from public, anon;
+grant execute on function public.create_public_standings_link(integer), public.revoke_public_standings_link(text), public.undo_session_event(bigint) to authenticated;
 grant execute on function public.read_public_standings(text) to anon, authenticated;
 revoke all on function public.current_role() from public, anon;
 grant execute on function public.current_role() to authenticated;
