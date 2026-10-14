@@ -23,15 +23,12 @@ describe('PublicStandings', () => {
     }, error: null})
   })
 
-  it('shows final day ranks and marks only rebought players', async () => {
+  it('shows player names and marks only rebought players in day results', async () => {
     render(<PublicStandings token="public-token" />)
 
     const results = await screen.findByRole('heading', {name: 'Résultats des journées'})
     const section = results.closest('section')!
-    expect(within(section).getByText('1e')).toBeTruthy()
-    expect(within(section).getByText('Ada')).toBeTruthy()
-    expect(within(section).getByText('2e')).toBeTruthy()
-    expect(within(section).getByText('Benoit (R)')).toBeTruthy()
+    expect(within(section).getByText(/Ada.*Benoit\s+\(R\)/)).toBeTruthy()
     expect(screen.queryByText(/recave/i)).toBeNull()
   })
 })

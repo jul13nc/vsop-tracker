@@ -115,7 +115,10 @@ export function Dashboard({session}: { session: AuthSession }) {
             setError(seasonResult.error?.message ?? memberResult.error?.message ?? 'Chargement impossible.')
             return
         }
-        const nextSeasons = (seasonResult.data ?? []) as Season[]
+        const nextSeasons = ((seasonResult.data ?? []) as Season[]).map((season) => ({
+            ...season,
+            id: String(season.id),
+        }))
         setSeasons(nextSeasons)
         setMembers((memberResult.data ?? []) as Member[])
         if (nextSeasons[0]) setSelectedSeasonId((current) => current || nextSeasons[0].id)
@@ -331,7 +334,7 @@ export function Dashboard({session}: { session: AuthSession }) {
             return
         }
         await loadBase();
-        setSelectedSeasonId(data as string);
+        setSelectedSeasonId(String(data));
         setCreatingSeason(false);
         setTab('game')
     }
@@ -347,7 +350,7 @@ export function Dashboard({session}: { session: AuthSession }) {
         setBusy(true);
         setError('')
         const {data, error: createError} = await client.rpc('create_session', {
-            p_season_id: selectedSeasonId,
+            p_season_id: Number(selectedSeasonId),
             p_played_at: form.playedAt,
             p_member_ids: form.memberIds
         })
@@ -388,7 +391,7 @@ export function Dashboard({session}: { session: AuthSession }) {
 
     async function closeSeason() {
         if (!confirm(`Clôturer la saison ${seasonLabel(seasons.find((item) => item.id === selectedSeasonId)?.start_year ?? 0)} ? Cette action rendra résultats et configuration non modifiables.`)) return
-        const success = await runAction(() => client.rpc('close_season', {p_season_id: selectedSeasonId}), true)
+        const success = await runAction(() => client.rpc('close_season', {p_season_id: Number(selectedSeasonId)}), true)
         if (success) await loadBase()
     }
 
@@ -415,7 +418,7 @@ export function Dashboard({session}: { session: AuthSession }) {
         const {
             data,
             error: linkError
-        } = await client.rpc('create_public_standings_link', {p_season_id: selectedSeasonId})
+        } = await client.rpc('create_public_standings_link', {p_season_id: Number(selectedSeasonId)})
         setBusy(false)
         if (linkError || !data) {
             setError(linkError?.message ?? 'Impossible de créer le lien public.');

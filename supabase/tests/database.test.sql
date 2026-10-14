@@ -1,5 +1,5 @@
 begin;
-select plan(58);
+select plan(62);
 
 select has_table('public', 'seasons', 'seasons table exists');
 select has_table('public', 'season_configurations', 'configuration table exists');
@@ -33,7 +33,11 @@ select throws_ok($$update public.season_configurations set chips='[{"label":"Gre
 select lives_ok($$select public.invite_reader('reader@example.test')$$,'organizer adds reader invitation before account signup');
 select throws_ok($$select public.invite_reader('reader@example.test')$$,'23505','An invitation for this email is already pending','duplicate pending invitation is rejected');
 select lives_ok($$insert into public.members(name) values('Ada'),('Benoit'),('Chloe')$$,'organizer creates members');
+select is((select id from public.members where name='Ada'),'ada','player identifier uses first name');
+select is(public.member_key('Benoît Martin'),'benoit','player identifier removes accents from first name');
+select is((select id from public.seasons limit 1),2026,'season identifier uses start year');
 select lives_ok($$select public.create_session((select id from public.seasons limit 1),'2026-10-01',(select array_agg(id) from public.members))$$,'organizer creates session and selects participants');
+select is((select id from public.sessions limit 1),'20261001','session identifier uses date in YYYYMMDD format');
 select throws_ok($$select public.close_season((select id from public.seasons limit 1))$$,'55000','Finish all sessions before closing season','cannot close season with open session');
 select is((select count(*)::integer from public.session_players),3,'selected participants are attached to session');
 select lives_ok($$select public.record_session_event((select id from public.sessions limit 1),(select member_id from public.session_players order by member_id limit 1),'elimination')$$,'organizer records elimination');
