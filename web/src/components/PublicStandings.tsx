@@ -5,13 +5,13 @@ import {seasonLabel} from '../lib/domain'
 type PublicResult = {
     name: string;
     points: number;
-    sessions: Array<{ session_date: string; rank: number; points: number; rebought: boolean }>
+    sessions: Array<{ session_date: string; rank: number; points: number }>
 }
 type PublicSession = {
     played_at: string;
     pot: number;
     payout_table: Record<string, Record<string, number>>;
-    players: Array<{ name: string; rank: number }>
+    players: Array<{ name: string; rank: number; rebought: boolean }>
 }
 type PublicPayload = {
     season: { start_year: number; status: 'open' | 'closed' };
@@ -71,8 +71,8 @@ export function PublicStandings({token}: { token: string }) {
                     <div className="standing-info">
                         <strong>{row.name}</strong><small>{row.sessions.map((item) => `${new Date(`${item.session_date}T12:00:00`).toLocaleDateString('fr-FR', {
                         day: 'numeric',
-                        month: 'short'
-                    })} · ${item.rank}e${item.rebought ? ' (recave)' : ''}`).join('  /  ')}</small></div>
+                        month: 'numeric'
+                    })} · ${item.rank}e`).join('  /  ')}</small></div>
                     <strong className="standing-points">{row.points}<small> pts</small></strong></article>) :
                 <p className="empty-copy">Aucun résultat disponible pour cette saison.</p>}</div>
         </section>
@@ -99,7 +99,7 @@ export function PublicStandings({token}: { token: string }) {
                     <div className="standing-names"> <p className="public-session-players">{session.players
                         .slice()
                         .sort((a, b) => a.rank - b.rank)
-                        .map((player) => player.name)
+                        .map((player) => `${player.name} ${player.rebought ? ' (R)' : ''}`)
                         .join(', ')}</p></div>
                 </article>) : <p className="empty-copy">Aucune journée terminée pour cette saison.</p>}</div>
         </section>

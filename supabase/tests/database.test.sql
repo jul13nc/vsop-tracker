@@ -1,5 +1,5 @@
 begin;
-select plan(56);
+select plan(58);
 
 select has_table('public', 'seasons', 'seasons table exists');
 select has_table('public', 'season_configurations', 'configuration table exists');
@@ -54,6 +54,8 @@ select is((select count(*)::integer from public.session_events),5,'all events pr
 select ok((public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1)))) ? 'seven_two_standings'),'public standings aggregate includes 7/2 leaderboard');
 select is(jsonb_array_length(public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1))))->'session_results'),1,'public standings include finished session results');
 select is(jsonb_array_length(public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1))))->'session_results'->0->'players'),3,'public day results include finish places');
+select is((public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1))))->'session_results'->0->'players'->0->>'rank'),'1','public day results expose final rank');
+select is((public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1))))->'session_results'->0->'players'->1->>'rebought'),'true','public day results mark rebought players');
 select is((public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1))))->'session_results'->0) ? 'events',false,'public day result omits event history');
 select lives_ok($$update public.season_configurations set buy_in=12 where season_id=(select id from public.seasons limit 1)$$,'season configuration can evolve for future sessions');
 select is((select configuration_snapshot->>'buy_in' from public.sessions limit 1),'10.00','session retains original config snapshot');
