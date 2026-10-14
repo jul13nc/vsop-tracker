@@ -387,6 +387,14 @@ export function Dashboard({session}: { session: AuthSession }) {
         if (result) await loadGame()
     }
 
+    async function undoEvent(eventId: number) {
+        const result = await runAction(() => client.rpc('undo_session_event', {p_event_id: eventId}))
+        if (result) {
+            await loadGame()
+            await loadSessions(selectedSeasonId)
+        }
+    }
+
     async function addMember() {
         const name = newMember.trim()
         if (!name) return
@@ -524,9 +532,10 @@ export function Dashboard({session}: { session: AuthSession }) {
                 {tab === 'game' && <GameView season={season} sessions={sessions} selectedSessionId={selectedSessionId}
                                              onSelectSession={setSelectedSessionId} players={players} events={events}
                                              activeCount={activeCount} totalPot={totalPot} payouts={payouts}
-                                             canEdit={Boolean(canEdit)} busy={busy} members={members}
-                                             onCreateSession={createSession} onRecord={recordEvent}
-                                             onCloseSeason={closeSeason}/>}
+                                              canEdit={Boolean(canEdit)} busy={busy} members={members}
+                                              onCreateSession={createSession} onRecord={recordEvent}
+                                              onUndo={undoEvent}
+                                              onCloseSeason={closeSeason}/>}
                 {tab === 'standings' && <StandingsView
                     data={{
                         season,

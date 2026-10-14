@@ -801,6 +801,11 @@
     margin-left: auto
 }
 
+.event-undo {
+    padding: 6px 9px;
+    font-size: 10px
+}
+
 .game-aside {
     border-left: 1px solid var(--line);
     padding: 25px 0 0 24px;

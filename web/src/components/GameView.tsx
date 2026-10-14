@@ -40,6 +40,7 @@ type Props = {
     members: { id: string; name: string }[];
     onCreateSession: (form: { playedAt: string; memberIds: string[] }) => Promise<void>;
     onRecord: (memberId: string, type: Event['event_type']) => Promise<void>;
+    onUndo: (eventId: number) => Promise<void>;
     onCloseSeason: () => Promise<void>
 }
 
@@ -59,6 +60,7 @@ export function GameView(props: Props) {
         members,
         onCreateSession,
         onRecord,
+        onUndo,
         onCloseSeason
     } = props
     const [creating, setCreating] = useState(false);
@@ -171,6 +173,11 @@ export function GameView(props: Props) {
                         <ol className="event-list">{events.slice().reverse().map((event) => <li key={event.id}><span
                             className={`event-symbol event-${event.event_type}`}>{event.event_type === 'rebuy' ? '↻' : event.event_type === 'elimination' ? '×' : '7/2'}</span><span><strong>{event.member.name}</strong><small>{event.event_type === 'rebuy' ? 'Recave' : event.event_type === 'elimination' ? `Élimination · ${event.rank_at_event}e` : 'Main remportée avec 7/2'}</small></span>
                             <time>#{event.sequence_number}</time>
+                            {canEdit && <button className="secondary-button event-undo" disabled={busy}
+                                aria-label={`Annuler ${event.event_type === 'rebuy' ? 'recave' : event.event_type === 'elimination' ? 'élimination' : '7/2'} de ${event.member.name}`}
+                                onClick={() => {
+                                    if (confirm(`Annuler cette action de ${event.member.name} ? Les actions suivantes seront recalculées.`)) void onUndo(event.id)
+                                }}>Annuler</button>}
                         </li>)}</ol>}</section>
             </>}
             {canEdit && season.status === 'open' && sessions.length > 0 &&

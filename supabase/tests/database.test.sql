@@ -1,5 +1,5 @@
 begin;
-select plan(62);
+select plan(65);
 
 select has_table('public', 'seasons', 'seasons table exists');
 select has_table('public', 'season_configurations', 'configuration table exists');
@@ -55,6 +55,9 @@ select is((select final_rank from public.session_players where member_id=(select
 select is((select first_rebuy_rank from public.session_players where member_id=(select member_id from public.session_events where event_type='rebuy' limit 1)),3,'later elimination does not overwrite first rebuy rank');
 select is((select count(distinct final_rank)::integer from public.session_players),3,'final ranks remain unique after rebuy');
 select is((select count(*)::integer from public.session_events),5,'all events preserve their history');
+select lives_ok($$select public.undo_session_event((select id from public.session_events where sequence_number=5))$$,'organizer can undo latest event from finished session');
+select is((select status::text from public.sessions limit 1),'open','undoing final elimination reopens session');
+select lives_ok($$select public.record_session_event((select id from public.sessions limit 1),(select member_id from public.session_events where event_type='rebuy' limit 1),'elimination')$$,'session can finish again after undo');
 select ok((public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1)))) ? 'seven_two_standings'),'public standings aggregate includes 7/2 leaderboard');
 select is(jsonb_array_length(public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1))))->'session_results'),1,'public standings include finished session results');
 select is(jsonb_array_length(public.read_public_standings((select public.create_public_standings_link((select id from public.seasons limit 1))))->'session_results'->0->'players'),3,'public day results include finish places');

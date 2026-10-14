@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { GameView } from './GameView'
 
 describe('GameView player list', () => {
@@ -25,10 +25,38 @@ describe('GameView player list', () => {
       members={[]}
       onCreateSession={async () => {}}
       onRecord={async () => {}}
+      onUndo={async () => {}}
       onCloseSeason={async () => {}}
     />)
 
     expect(screen.getByText('Ada (2)')).toBeTruthy()
     expect(screen.getByText('Bob (0)')).toBeTruthy()
+  })
+
+  it('lets organizer undo an event from the journal', () => {
+    const onUndo = vi.fn(async () => {})
+    vi.stubGlobal('confirm', () => true)
+    render(<GameView
+      season={{id: '2026', start_year: 2026, status: 'open'}}
+      sessions={[{id: '20261001', season_id: '2026', played_at: '2026-10-01', status: 'open', configuration_snapshot: {buy_in: 10, chips: []}}]}
+      selectedSessionId="20261001"
+      onSelectSession={() => {}}
+      players={[{session_id: '20261001', member_id: 'ada', status: 'eliminated', current_rank: 2, final_rank: 2, first_rebuy_rank: null, member: {id: 'ada', name: 'Ada'}}]}
+      events={[{id: 42, sequence_number: 1, event_type: 'elimination', amount: 0, rank_at_event: 2, member: {id: 'ada', name: 'Ada'}}]}
+      activeCount={0}
+      totalPot={10}
+      payouts={null}
+      canEdit
+      busy={false}
+      members={[]}
+      onCreateSession={async () => {}}
+      onRecord={async () => {}}
+      onUndo={onUndo}
+      onCloseSeason={async () => {}}
+    />)
+
+    fireEvent.click(screen.getByRole('button', {name: 'Annuler élimination de Ada'}))
+    expect(onUndo).toHaveBeenCalledWith(42)
+    vi.unstubAllGlobals()
   })
 })

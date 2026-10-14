@@ -80,13 +80,14 @@ alter table public.session_events add column session_id_stable text;
 update public.session_events event set session_id_stable = game.id_stable
 from public.sessions game where game.id = event.session_id;
 
-alter table public.public_standings_links drop constraint public_standings_links_season_id_fkey;
 alter table public.season_configurations drop constraint season_configurations_pkey;
+alter table public.season_configurations drop constraint season_configurations_season_id_fkey;
+alter table public.public_standings_links drop constraint public_standings_links_season_id_fkey;
 alter table public.sessions drop constraint sessions_season_id_fkey;
+alter table public.session_events drop constraint session_events_session_id_member_id_fkey;
 alter table public.session_players drop constraint session_players_pkey;
 alter table public.session_players drop constraint session_players_session_id_fkey;
 alter table public.session_players drop constraint session_players_member_id_fkey;
-alter table public.session_events drop constraint session_events_session_id_member_id_fkey;
 alter table public.session_events drop constraint session_events_session_id_sequence_number_key;
 
 alter table public.seasons drop constraint seasons_pkey;
