@@ -20,11 +20,41 @@ create table seasons (
   id              text primary key,          -- e.g. "2026-2027"
   label           text not null,             -- e.g. "2026/2027"
   buyin_cents     int  not null default 1000,
-  payout_table    jsonb not null default '{}'::jsonb,
-  chip_config     jsonb not null default '[]'::jsonb,
+  payout_table    jsonb not null default '{
+    "50":{"1":30,"2":20},
+    "60":{"1":40,"2":20},
+    "70":{"1":40,"2":20,"3":10},
+    "80":{"1":40,"2":30,"3":10},
+    "90":{"1":50,"2":30,"3":10},
+    "100":{"1":60,"2":30,"3":10},
+    "110":{"1":70,"2":30,"3":10},
+    "120":{"1":70,"2":40,"3":10},
+    "130":{"1":80,"2":40,"3":10},
+    "140":{"1":90,"2":40,"3":10}
+  }'::jsonb,
+  chip_config     jsonb not null default '[
+    {"name":"Vert","value":25,"count":12},
+    {"name":"Noir","value":100,"count":12},
+    {"name":"Violet","value":500,"count":7}
+  ]'::jsonb,
   points_scheme   jsonb not null default '[10,7,5,3,2,1]'::jsonb,
   blind_level_minutes int not null default 20,
-  blind_structure jsonb not null default '[]'::jsonb,
+  blind_structure jsonb not null default '[
+    {"level":1,"small":25,"big":50},
+    {"level":2,"small":50,"big":100},
+    {"level":3,"small":75,"big":150},
+    {"level":4,"small":100,"big":200},
+    {"level":5,"small":150,"big":300},
+    {"level":6,"small":200,"big":400},
+    {"level":7,"small":250,"big":500},
+    {"level":8,"small":300,"big":600},
+    {"level":9,"small":400,"big":800},
+    {"level":10,"small":600,"big":1200},
+    {"level":11,"small":1200,"big":2400},
+    {"level":12,"small":2000,"big":4000},
+    {"level":13,"small":3000,"big":6000},
+    {"level":14,"small":4000,"big":8000}
+  ]'::jsonb,
   is_closed       boolean not null default false,
   created_at      timestamptz not null default now()
 );
