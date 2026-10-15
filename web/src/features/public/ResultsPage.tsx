@@ -27,27 +27,34 @@ interface ResultsData {
 }
 
 async function load(seasonId: string): Promise<ResultsData> {
-  const gamedays = await listGamedays(seasonId);
-  const players = await listPlayers();
+  const [gamedays, players] = await Promise.all([
+    listGamedays(seasonId),
+    listPlayers(),
+  ]);
   const withRows = await Promise.all(
     gamedays.map(async (g) => {
       const [gamedayPlayers, events] = await Promise.all([
         listGamedayPlayers(g.id),
         listEvents(g.id),
       ]);
+      const dayRankByPlayer = Object.fromEntries(
+        computePayoutRanking(gamedayPlayers.map((row) => row.player_id), events)
+          .map((row) => [row.playerId, row.rank]),
+      );
       return {
         id: g.id,
         date: g.date,
         counts_double: g.counts_double,
         status: g.status,
+        sevenTwoByPlayer: Object.fromEntries(sevenTwoCounts(events)),
+        dayRankByPlayer,
         rows: gamedayPlayers
           .filter((r) => r.final_rank !== null)
-          .sort((a, b) => (a.final_rank ?? 0) - (b.final_rank ?? 0)),
-        sevenTwoByPlayer: Object.fromEntries(sevenTwoCounts(events)),
-        dayRankByPlayer: Object.fromEntries(
-          computePayoutRanking(gamedayPlayers.map((row) => row.player_id), events)
-            .map((row) => [row.playerId, row.rank]),
-        ),
+          .sort(
+            (a, b) =>
+              (dayRankByPlayer[a.player_id] ?? Infinity) -
+              (dayRankByPlayer[b.player_id] ?? Infinity),
+          ),
         rebuyCountByPlayer: Object.fromEntries(
           [...replayEvents(gamedayPlayers.map((row) => row.player_id), events)]
             .map(([playerId, state]) => [playerId, state.rebuys]),
@@ -91,24 +98,26 @@ export default function ResultsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Rang championnat</th>
+                  <th>#</th>
                   <th>Joueur</th>
+                  <th>Rang champ.</th>
                   <th>7/2</th>
-                  <th>Points</th>
+                  <th>Pts</th>
                 </tr>
               </thead>
               <tbody>
                 {g.rows.map((r) => (
                   <tr key={r.player_id}>
-                    <td>{r.final_rank}</td>
+                    <td>{g.dayRankByPlayer[r.player_id]}</td>
                     <td>
-                      {nameOf(r.player_id)} - {g.dayRankByPlayer[r.player_id] ?? "—"}
+                      {nameOf(r.player_id)}
                       {(g.rebuyCountByPlayer[r.player_id] ?? 0) > 0
                         ? ` (R${g.rebuyOrderByPlayer[r.player_id]})`
                         : ""}
-                    </td>
+                      </td>
+                    <td>{r.final_rank}</td>
                     <td>{g.sevenTwoByPlayer[r.player_id] ?? '-'}</td>
-                    <td>{r.points} pts</td>
+                    <td>{r.points}</td>
                   </tr>
                 ))}
               </tbody>
