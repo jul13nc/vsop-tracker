@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabaseClient";
-import type { GameEvent } from "../types/domain";
+import { listEvents } from "./events";
 import { computeGamedayRanking } from "../domain/ranking";
 import { pointsForRank } from "../domain/points";
 
@@ -39,10 +39,12 @@ export async function getSevenTwoStandings(
 export async function validateGameday(
   gamedayId: string,
   playerIds: string[],
-  events: GameEvent[],
   pointsScheme: number[],
   countsDouble: boolean,
 ): Promise<void> {
+  // Reload the journal at validation time so undo events are always reflected,
+  // even when the validation screen was opened before the last change.
+  const events = await listEvents(gamedayId);
   const ranking = computeGamedayRanking(playerIds, events);
 
   for (const row of ranking) {

@@ -11,7 +11,6 @@ import { pointsForRank } from "../../../domain/points";
 import { sevenTwoCounts } from "../../../domain/sevenTwo";
 import { formatWhatsAppResults } from "../../../domain/whatsapp";
 import { validateGameday } from "../../../api/standings";
-import { reopenGameday } from "../../../api/gamedays";
 
 export default function ValidatePage() {
   const { gamedayId } = useParams();
@@ -66,27 +65,19 @@ export default function ValidatePage() {
   }
 
   async function validate() {
-    if (!confirm("Valider la journée et mettre à jour le classement ?")) return;
+    const message = validated
+      ? "Recalculer le classement avec les événements actuels ?"
+      : "Valider la journée et mettre à jour le classement ?";
+    if (!confirm(message)) return;
     try {
       await validateGameday(
         gamedayId!,
         ids,
-        events,
         season.points_scheme,
         gameday.counts_double,
       );
       reload();
       navigate(`/admin/seasons/${season.id}`);
-    } catch (e) {
-      alert((e as Error).message);
-    }
-  }
-
-  async function reopen() {
-    if (!confirm("Réouvrir cette journée pour modifier les saisies ? Les points et rangs calculés seront remis à zéro.")) return;
-    try {
-      await reopenGameday(gamedayId!);
-      navigate(`/admin/gameday/${gamedayId}/live`);
     } catch (e) {
       alert((e as Error).message);
     }
@@ -185,20 +176,16 @@ export default function ValidatePage() {
         )}
       </div>
 
-      {validated ? (
+      {validated && (
         <div className="card">
           <span className="badge">Journée validée ✓</span>
-          {season.is_closed ? (
-            <p className="muted">Réouvre d’abord la saison pour modifier cette journée.</p>
-          ) : (
-            <button className="btn btn--danger" onClick={reopen} style={{ marginTop: 12 }}>
-              Réouvrir la journée
-            </button>
-          )}
         </div>
+      )}
+      {season.is_closed ? (
+        <p className="muted">La saison est fermée ; réouvre-la pour mettre à jour le classement.</p>
       ) : (
         <button className="btn btn--block" onClick={validate}>
-          Valider & mettre à jour le classement
+          {validated ? "Recalculer le classement" : "Valider & mettre à jour le classement"}
         </button>
       )}
     </div>
