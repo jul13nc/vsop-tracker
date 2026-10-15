@@ -77,6 +77,16 @@ export async function setGamedayStatus(
   if (error) throw error;
 }
 
+export async function reopenGameday(id: string): Promise<void> {
+  const { error: playersError } = await supabase
+    .from("gameday_players")
+    .update({ final_rank: null, points: null })
+    .eq("gameday_id", id);
+  if (playersError) throw playersError;
+
+  await setGamedayStatus(id, "finished");
+}
+
 export async function listGamedayPlayers(
   gamedayId: string,
 ): Promise<GamedayPlayer[]> {

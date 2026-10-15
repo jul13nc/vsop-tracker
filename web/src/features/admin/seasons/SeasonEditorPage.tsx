@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { closeSeason, getSeason, updateSeason } from "../../../api/seasons";
+import { closeSeason, getSeason, reopenSeason, updateSeason } from "../../../api/seasons";
 import { listGamedays } from "../../../api/gamedays";
 import { useAsync } from "../../../hooks/useAsync";
 import type { BlindLevel, Season } from "../../../types/domain";
@@ -211,11 +211,26 @@ export default function SeasonEditorPage() {
     reload();
   }
 
+  async function reopen() {
+    if (!confirm("Réouvrir la saison pour permettre de nouvelles modifications ?")) return;
+    try {
+      await reopenSeason(draft!.id);
+      reload();
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  }
+
   return (
     <div>
       <div className="row spread">
         <h2>{draft.label}</h2>
-        {readOnly && <span className="badge">clôturée (lecture seule)</span>}
+        {readOnly && (
+          <div className="row">
+            <span className="badge">clôturée (lecture seule)</span>
+            <button className="btn" onClick={reopen}>Réouvrir la saison</button>
+          </div>
+        )}
       </div>
       {!readOnly && (
         <Link

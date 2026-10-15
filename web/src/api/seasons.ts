@@ -63,3 +63,7 @@ export async function updateSeason(
 export async function closeSeason(id: string): Promise<void> {
   await updateSeason(id, { is_closed: true });
 }
+
+export async function reopenSeason(id: string): Promise<void> {
+  await updateSeason(id, { is_closed: false });
+}

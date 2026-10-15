@@ -28,7 +28,7 @@ export default function LivePage() {
   }, [data?.gameday.status, data?.gameday.id, reload]);
 
   useEffect(() => {
-    if (!data || finishHandled.current) return;
+    if (!data || data.gameday.status !== "live" || finishHandled.current) return;
     const playerIds = data.players.map((player) => player.id);
     if (playersRemaining(playerIds, data.events) !== 1) return;
 

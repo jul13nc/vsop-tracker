@@ -11,6 +11,7 @@ import { pointsForRank } from "../../../domain/points";
 import { sevenTwoCounts } from "../../../domain/sevenTwo";
 import { formatWhatsAppResults } from "../../../domain/whatsapp";
 import { validateGameday } from "../../../api/standings";
+import { reopenGameday } from "../../../api/gamedays";
 
 export default function ValidatePage() {
   const { gamedayId } = useParams();
@@ -76,6 +77,16 @@ export default function ValidatePage() {
       );
       reload();
       navigate(`/admin/seasons/${season.id}`);
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  }
+
+  async function reopen() {
+    if (!confirm("Réouvrir cette journée pour modifier les saisies ? Les points et rangs calculés seront remis à zéro.")) return;
+    try {
+      await reopenGameday(gamedayId!);
+      navigate(`/admin/gameday/${gamedayId}/live`);
     } catch (e) {
       alert((e as Error).message);
     }
@@ -177,6 +188,13 @@ export default function ValidatePage() {
       {validated ? (
         <div className="card">
           <span className="badge">Journée validée ✓</span>
+          {season.is_closed ? (
+            <p className="muted">Réouvre d’abord la saison pour modifier cette journée.</p>
+          ) : (
+            <button className="btn btn--danger" onClick={reopen} style={{ marginTop: 12 }}>
+              Réouvrir la journée
+            </button>
+          )}
         </div>
       ) : (
         <button className="btn btn--block" onClick={validate}>
