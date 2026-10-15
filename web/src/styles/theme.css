@@ -587,10 +587,23 @@ tbody tr:hover {
 .clock__level {
   margin-bottom: 8px;
   color: var(--green);
-  font-size: 0.83rem;
+  font-size: 1.83rem;
   font-weight: 800;
   letter-spacing: 0.24em;
   text-transform: uppercase;
+}
+
+.clock__rebuy {
+  margin-top: 8px;
+  color: var(--green);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock__rebuy--closed {
+  color: var(--gold-bright);
 }
 
 .clock__bubble {

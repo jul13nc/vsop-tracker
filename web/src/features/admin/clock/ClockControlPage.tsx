@@ -12,6 +12,7 @@ import {
 import { averageStack } from "../../../domain/chips";
 import { playersRemaining, totalRebuys } from "../../../domain/ranking";
 import { paidPlacesForTotal, totalBetEuros } from "../../../domain/payout";
+import { rebuySecondsRemaining } from "../../../domain/clock";
 
 export default function ClockControlPage() {
   const { gamedayId } = useParams();
@@ -71,7 +72,17 @@ export default function ClockControlPage() {
       state={state}
       playersRemaining={remaining}
       averageStack={avg}
-      isBubble={paidPlaces > 0 && remaining === paidPlaces + 1}
+      rebuySecondsRemaining={rebuySecondsRemaining(
+        clock,
+        state,
+        data.season.rebuy_timeout_minutes,
+      )}
+      isBubble={
+        rebuySecondsRemaining(clock, state, data.season.rebuy_timeout_minutes) ===
+          0 &&
+        paidPlaces > 0 &&
+        remaining === paidPlaces + 1
+      }
       flash={state.levelComplete}
       playBeep
     >

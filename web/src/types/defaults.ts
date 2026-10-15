@@ -25,6 +25,8 @@ export const DEFAULT_POINTS_SCHEME: number[] = [10, 7, 5, 3, 2, 1];
 
 export const DEFAULT_BLIND_LEVEL_MINUTES = 20;
 
+export const DEFAULT_REBUY_TIMEOUT_MINUTES = 90;
+
 export const DEFAULT_BLIND_STRUCTURE: BlindLevel[] = [
   { level: 1, small: 25, big: 50 },
   { level: 2, small: 50, big: 100 },

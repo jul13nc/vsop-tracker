@@ -9,17 +9,18 @@ import {
   resolvePayout,
   totalBetEuros,
 } from "../../domain/payout";
+import { rebuySecondsRemaining } from "../../domain/clock";
 
 export default function PublicClockPage() {
   const { gamedayId } = useParams();
   const { data } = useGameday(gamedayId!);
-  const { state } = useClock(
+  const { clock, state } = useClock(
     gamedayId!,
     data?.season.blind_structure ?? [],
     data?.season.blind_level_minutes ?? 20,
   );
 
-  if (!data || !state)
+  if (!data || !state || !clock)
     return <div className="app">Chargement de l'horloge…</div>;
 
   // Once the gameday is validated, switch to the standings.
@@ -63,7 +64,20 @@ export default function PublicClockPage() {
       playersRemaining={remaining}
       startingPlayers={data.players.length}
       averageStack={avg}
-      isBubble={paidPlaces > 0 && remaining === paidPlaces + 1}
+      rebuySecondsRemaining={rebuySecondsRemaining(
+        clock,
+        state,
+        data.season.rebuy_timeout_minutes,
+      )}
+      isBubble={
+        rebuySecondsRemaining(
+          clock,
+          state,
+          data.season.rebuy_timeout_minutes,
+        ) === 0 &&
+        paidPlaces > 0 &&
+        remaining === paidPlaces + 1
+      }
       payout={payout}
       upcomingLevels={upcomingLevels}
       flash={state.levelComplete}

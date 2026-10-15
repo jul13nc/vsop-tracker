@@ -194,6 +194,7 @@ export default function SeasonEditorPage() {
         chip_config: draft!.chip_config,
         points_scheme: draft!.points_scheme,
         blind_level_minutes: draft!.blind_level_minutes,
+        rebuy_timeout_minutes: draft!.rebuy_timeout_minutes,
         blind_structure: draft!.blind_structure,
       });
       reload();
@@ -288,6 +289,21 @@ export default function SeasonEditorPage() {
           }
           onLevelsChange={(blind_structure) =>
             setDraft({ ...draft, blind_structure })
+          }
+        />
+
+        <label>Durée autorisée pour les recaves (minutes)</label>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          disabled={readOnly}
+          value={draft.rebuy_timeout_minutes}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              rebuy_timeout_minutes: Math.max(0, Number(e.target.value)),
+            })
           }
         />
 

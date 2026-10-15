@@ -8,6 +8,7 @@ interface Props {
   startingPlayers?: number;
   averageStack: number;
   isBubble: boolean;
+  rebuySecondsRemaining: number;
   payout?: { rank: number; amount: number }[];
   upcomingLevels?: BlindLevel[];
   flash: boolean;
@@ -41,6 +42,7 @@ export default function ClockView({
   startingPlayers,
   averageStack,
   isBubble,
+  rebuySecondsRemaining,
   payout,
   upcomingLevels,
   flash,
@@ -104,6 +106,15 @@ export default function ClockView({
             Stack moyen<b>{averageStack.toLocaleString("fr-FR")}</b>
           </div>
         </div>
+        <div
+            className={`clock__rebuy${rebuySecondsRemaining === 0 ? " clock__rebuy--closed" : ""}`}
+            role="status"
+        >
+          {rebuySecondsRemaining > 0
+              ? `Recave: ${formatClock(rebuySecondsRemaining)}`
+              : "Plus de recave"}
+        </div>
+
         {children}
       </section>
 

@@ -7,6 +7,7 @@ import {
   DEFAULT_CHIP_CONFIG,
   DEFAULT_PAYOUT_TABLE,
   DEFAULT_POINTS_SCHEME,
+  DEFAULT_REBUY_TIMEOUT_MINUTES,
 } from "../types/defaults";
 
 export async function listSeasons(): Promise<Season[]> {
@@ -41,6 +42,7 @@ export async function createSeason(label: string): Promise<Season> {
       chip_config: DEFAULT_CHIP_CONFIG,
       points_scheme: DEFAULT_POINTS_SCHEME,
       blind_level_minutes: DEFAULT_BLIND_LEVEL_MINUTES,
+      rebuy_timeout_minutes: DEFAULT_REBUY_TIMEOUT_MINUTES,
       blind_structure: DEFAULT_BLIND_STRUCTURE,
       is_closed: false,
     })

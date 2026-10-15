@@ -29,6 +29,7 @@ export interface Season {
   chip_config: ChipType[];
   points_scheme: number[];
   blind_level_minutes: number;
+  rebuy_timeout_minutes: number;
   blind_structure: BlindLevel[];
   is_closed: boolean;
   created_at?: string;

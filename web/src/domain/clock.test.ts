@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { clockState, formatBlinds, formatClock } from "./clock";
+import {
+  clockState,
+  formatBlinds,
+  formatClock,
+  rebuySecondsRemaining,
+} from "./clock";
 import type { BlindLevel, TournamentClock } from "../types/domain";
 
 const structure: BlindLevel[] = [
@@ -47,6 +52,24 @@ describe("clockState", () => {
     );
     expect(s.secondsRemaining).toBe(0);
     expect(s.levelComplete).toBe(true);
+  });
+
+  it("counts rebuy time across completed levels and current level", () => {
+    const tournamentClock = clock({
+      current_level: 2,
+      paused_elapsed_seconds: 10 * 60,
+    });
+    const state = clockState(structure, tournamentClock, 0, 20);
+
+    expect(rebuySecondsRemaining(tournamentClock, state, 90)).toBe(60 * 60);
+    expect(rebuySecondsRemaining(tournamentClock, state, 30)).toBe(0);
+  });
+
+  it("uses the 90-minute default when season config is missing", () => {
+    const tournamentClock = clock({ is_running: true });
+    const state = clockState(structure, tournamentClock, 0, 20);
+
+    expect(rebuySecondsRemaining(tournamentClock, state, undefined)).toBe(90 * 60);
   });
 });
 

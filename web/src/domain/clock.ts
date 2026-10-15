@@ -1,4 +1,5 @@
 import type { BlindLevel, TournamentClock } from "../types/domain";
+import { DEFAULT_REBUY_TIMEOUT_MINUTES } from "../types/defaults";
 
 export interface ClockState {
   level: BlindLevel | null;
@@ -46,6 +47,35 @@ export function clockState(
     isRunning: clock.is_running,
     levelComplete: levelSeconds > 0 && secondsRemaining === 0,
   };
+}
+
+/** Tournament time elapsed, excluding pauses, based on completed/current levels. */
+export function tournamentElapsedSeconds(
+  clock: TournamentClock,
+  state: ClockState,
+): number {
+  const completedLevels = Math.max(0, clock.current_level - 1);
+  const elapsedInLevel =
+    state.levelDurationMinutes * 60 - state.secondsRemaining;
+  return Math.max(
+    0,
+    completedLevels * state.levelDurationMinutes * 60 + elapsedInLevel,
+  );
+}
+
+export function rebuySecondsRemaining(
+  clock: TournamentClock,
+  state: ClockState,
+  timeoutMinutes: number | null | undefined,
+): number {
+  const durationMinutes =
+    typeof timeoutMinutes === "number" && Number.isFinite(timeoutMinutes)
+      ? timeoutMinutes
+      : DEFAULT_REBUY_TIMEOUT_MINUTES;
+  return Math.max(
+    0,
+    durationMinutes * 60 - tournamentElapsedSeconds(clock, state),
+  );
 }
 
 /** Format seconds as MM:SS. */
