@@ -8,6 +8,7 @@ interface Props {
   startingPlayers?: number;
   averageStack: number;
   isBubble: boolean;
+  isInTheMoney: boolean;
   rebuySecondsRemaining: number;
   payout?: { rank: number; amount: number }[];
   upcomingLevels?: BlindLevel[];
@@ -42,6 +43,7 @@ export default function ClockView({
   startingPlayers,
   averageStack,
   isBubble,
+  isInTheMoney,
   rebuySecondsRemaining,
   payout,
   upcomingLevels,
@@ -81,7 +83,11 @@ export default function ClockView({
       <section className="clock__main">
         {isBubble ? (
           <div className="clock__bubble" role="status">
-            C&apos;EST LA BULLE !
+            🫧 BUBBLE TIME ! 🫧
+          </div>
+        ) : isInTheMoney ? (
+          <div className="clock__bubble" role="status">
+            💵 IN THE MONEY ! 💵
           </div>
         ) : (
           <div className="clock__level">Niveau {state.level?.level ?? "—"}</div>

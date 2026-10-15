@@ -78,11 +78,10 @@ export default function ClockControlPage() {
         data.season.rebuy_timeout_minutes,
       )}
       isBubble={
-        rebuySecondsRemaining(clock, state, data.season.rebuy_timeout_minutes) ===
-          0 &&
         paidPlaces > 0 &&
         remaining === paidPlaces + 1
       }
+      isInTheMoney={paidPlaces > 0 && remaining <= paidPlaces}
       flash={state.levelComplete}
       playBeep
     >
