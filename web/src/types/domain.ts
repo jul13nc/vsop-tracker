@@ -35,7 +35,7 @@ export interface Season {
   created_at?: string;
 }
 
-export type GamedayStatus = "setup" | "live" | "finished" | "validated";
+export type GamedayStatus = "setup" | "live" | "finished" | "validated" | "reopened";
 
 export interface Gameday {
   id: string;

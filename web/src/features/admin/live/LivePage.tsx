@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameday } from "../../../hooks/useGameday";
 import { addEvent, undoLast } from "../../../api/events";
-import { setGamedayStatus } from "../../../api/gamedays";
+import { reopenGameday, setGamedayStatus } from "../../../api/gamedays";
 import { ensureClock, pauseClock } from "../../../api/clock";
 import {
   playersRemaining,
@@ -91,6 +91,20 @@ export default function LivePage() {
     reload();
   }
 
+  async function reopen() {
+    if (data!.season.is_closed) {
+      alert("Réouvre d’abord la saison depuis sa page de gestion.");
+      return;
+    }
+    if (!confirm("Réouvrir cette journée pour modifier les saisies ? Les points et rangs calculés seront remis à zéro.")) return;
+    try {
+      await reopenGameday(gamedayId!);
+      reload();
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  }
+
   return (
     <div>
       <div className="row spread">
@@ -104,6 +118,17 @@ export default function LivePage() {
           </button>
         </div>
       </div>
+
+      {(gameday.status === "finished" || gameday.status === "validated") && (
+        <div className="card">
+          <button className="btn btn--danger" onClick={reopen}>
+            Réouvrir la journée
+          </button>
+        </div>
+      )}
+      {gameday.status === "reopened" && (
+        <div className="card"><span className="badge">Journée réouverte — saisies modifiables</span></div>
+      )}
 
       <div className="card row spread">
         <div>

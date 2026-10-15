@@ -20,7 +20,7 @@ export async function getActiveGameday(
     .from("gamedays")
     .select("*")
     .eq("season_id", seasonId)
-    .in("status", ["live", "finished"])
+    .in("status", ["live", "finished", "reopened"])
     .order("date", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -84,7 +84,7 @@ export async function reopenGameday(id: string): Promise<void> {
     .eq("gameday_id", id);
   if (playersError) throw playersError;
 
-  await setGamedayStatus(id, "finished");
+  await setGamedayStatus(id, "reopened");
 }
 
 export async function listGamedayPlayers(
