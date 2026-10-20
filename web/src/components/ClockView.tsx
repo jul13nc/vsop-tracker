@@ -63,21 +63,26 @@ export default function ClockView({
   return (
     <div className={`clock${flash ? " flash" : ""}${payout ? " clock--public" : ""}`}>
       {payout && (
-        <aside className="clock__side clock__side--payout">
-          <h2>Payout</h2>
-          {payout.length ? (
-            <ol>
-              {payout.map(({ rank, amount }) => (
-                <li key={rank}>
-                  <span>{rank}<sup>{rank === 1 ? "er" : "e"}</sup></span>
-                  <strong>{amount.toLocaleString("fr-FR")} €</strong>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="muted">Non défini</p>
-          )}
-        </aside>
+          <aside className="clock__side clock__side--payout">
+            <div>
+            <img className="clock__logo" src="/Logo_VSOP.png" alt="VSOP" />
+            </div>
+            <div>
+            <h2>Payout</h2>
+            {payout.length ? (
+                <ol>
+                  {payout.map(({ rank, amount }) => (
+                      <li key={rank}>
+                        <span>{rank}<sup>{rank === 1 ? "er" : "e"}</sup></span>
+                        <strong>{amount.toLocaleString("fr-FR")} €</strong>
+                      </li>
+                  ))}
+                </ol>
+            ) : (
+                <p className="muted">Non défini</p>
+            )}</div>
+          </aside>
+
       )}
 
       <section className="clock__main">
@@ -126,6 +131,7 @@ export default function ClockView({
 
       {upcomingLevels && (
         <aside className="clock__side clock__side--levels">
+          <div>
           <h2>Blindes suivantes</h2>
           {upcomingLevels.length ? (
             <ol>
@@ -139,6 +145,7 @@ export default function ClockView({
           ) : (
             <p className="muted">Dernier niveau</p>
           )}
+          </div>
         </aside>
       )}
     </div>

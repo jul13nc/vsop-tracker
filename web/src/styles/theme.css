@@ -274,6 +274,19 @@ tbody tr:hover {
   color: var(--cream);
 }
 
+.brand-logo-link {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.brand-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
 .brand-lockup small {
   display: block;
   margin-top: 2px;
@@ -305,6 +318,12 @@ tbody tr:hover {
   margin: 0 auto 24px;
   font-size: 2.6rem;
   box-shadow: 0 0 0 7px rgba(196, 164, 103, 0.055), 0 12px 36px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.14);
+}
+
+.brand-logo--hero {
+  width: min(240px, 64vw);
+  height: auto;
+  margin: 0 auto 24px;
 }
 
 .eyebrow {
@@ -514,10 +533,13 @@ tbody tr:hover {
   padding: clamp(20px, 3vw, 48px);
 }
 
-.clock__side {
+.clock__side{
   z-index: 1;
   width: 100%;
   align-self: center;
+}
+
+.clock__side div{
   padding: clamp(12px, 1.6vw, 22px);
   border: 1px solid rgba(196, 164, 103, 0.22);
   border-radius: 15px;
@@ -567,6 +589,13 @@ tbody tr:hover {
 
 .clock__side--payout li:first-child strong {
   color: var(--gold-bright);
+}
+
+.clock__logo {
+  display: block;
+  width: min(100%, 200px);
+  height: auto;
+  margin: 0 auto;
 }
 
 .clock__side sup {

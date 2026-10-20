@@ -14,9 +14,11 @@ export default function PublicLayout() {
   return (
     <div className="app">
       <div className="public-heading">
-        <Link to="/pub" className="brand-mark" aria-label="Toutes les saisons">♠</Link>
+        <Link to="/pub" className="brand-logo-link" aria-label="Toutes les saisons">
+          <img className="brand-logo" src="/Logo_VSOP.png" alt="VSOP" />
+        </Link>
         <div>
-          <p className="eyebrow">CHAMPIONNAT VSOP</p>
+          <p className="eyebrow">CHAMPIONNAT</p>
           <h1>{season?.label ?? seasonId}</h1>
         </div>
       </div>

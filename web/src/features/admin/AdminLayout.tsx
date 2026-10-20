@@ -8,8 +8,7 @@ export default function AdminLayout() {
       <div className="row spread">
         <h1 className="brand-lockup" style={{ margin: 0 }}>
           <Link to="/admin" style={{ textDecoration: "none" }}>
-            <span className="brand-mark" aria-hidden="true">♠</span>
-            <span>VSOP</span>
+            <img className="brand-logo" src="/Logo_VSOP.png" alt="VSOP" />
           </Link>
         </h1>
         <button className="btn btn--ghost" onClick={() => signOut()}>
