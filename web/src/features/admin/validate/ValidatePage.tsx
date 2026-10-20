@@ -4,6 +4,7 @@ import { useGameday } from "../../../hooks/useGameday";
 import {
   computeGamedayRanking,
   computePayoutRanking,
+  rebuyOrderByPlayer,
   totalRebuys,
 } from "../../../domain/ranking";
 import { resolvePayout, totalBetEuros } from "../../../domain/payout";
@@ -39,6 +40,7 @@ export default function ValidatePage() {
     payoutRanking,
     playerNames,
     sevenTwo,
+    rebuyOrderByPlayer(ids, events),
   );
   const rebuys = totalRebuys(ids, events);
   const bet = totalBetEuros(players.length, rebuys, season.buyin_cents);
