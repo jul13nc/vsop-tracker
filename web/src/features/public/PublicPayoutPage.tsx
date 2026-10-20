@@ -25,7 +25,7 @@ export default function PublicPayoutPage() {
   const playerIds = data.players.map((player) => player.id);
   const remaining = playersRemaining(playerIds, data.events);
   if (remaining !== 1) {
-    return <Navigate to={`/pub/${data.season.id}/clock/${data.gameday.id}`} replace />;
+    return <Navigate to="/pub/clock" replace />;
   }
 
   const rebuys = totalRebuys(playerIds, data.events);

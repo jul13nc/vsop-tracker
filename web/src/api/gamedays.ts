@@ -14,18 +14,23 @@ export async function listGamedays(seasonId: string): Promise<Gameday[]> {
 
 /** Most recent gameday that is live or finished (clock worth showing). */
 export async function getActiveGameday(
-  seasonId: string,
+  seasonId?: string,
 ): Promise<Gameday | null> {
-  const { data, error } = await supabase
-    .from("gamedays")
-    .select("*")
-    .eq("season_id", seasonId)
-    .in("status", ["live", "finished", "reopened"])
-    .order("date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  // `reopened` is a client-side status but isn't present in the deployed
+  // gameday_status enum yet; querying it makes Postgres reject the whole query.
+  for (const status of ["live", "finished"] as const) {
+    let query = supabase
+      .from("gamedays")
+      .select("*")
+      .eq("status", status)
+      .order("date", { ascending: false })
+      .limit(1);
+    if (seasonId) query = query.eq("season_id", seasonId);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw error;
+    if (data) return data;
+  }
+  return null;
 }
 
 export async function getGameday(id: string): Promise<Gameday | null> {

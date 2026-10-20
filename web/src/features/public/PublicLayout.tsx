@@ -7,8 +7,8 @@ export default function PublicLayout() {
   const { seasonId } = useParams();
   const { data: season } = useAsync(() => getSeason(seasonId!), [seasonId]);
   const { data: active } = useAsync(
-    () => getActiveGameday(seasonId!),
-    [seasonId],
+    () => getActiveGameday(),
+    [],
   );
 
   return (
@@ -27,7 +27,7 @@ export default function PublicLayout() {
         <NavLink to={`/pub/${seasonId}/seven-two`}>Classement 7/2</NavLink>
         <NavLink to={`/pub/${seasonId}/results`}>Journées</NavLink>
         {active && (
-          <NavLink to={`/pub/${seasonId}/clock/${active.id}`}>
+          <NavLink to="/pub/clock">
             🕐 Horloge live
           </NavLink>
         )}

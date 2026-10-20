@@ -1,5 +1,8 @@
 import { Link, Navigate, useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { getActiveGameday } from "../../api/gamedays";
 import { useGameday } from "../../hooks/useGameday";
+import { useAsync } from "../../hooks/useAsync";
 import { useClock } from "../../hooks/useClock";
 import ClockView from "../../components/ClockView";
 import { averageStack } from "../../domain/chips";
@@ -11,8 +14,28 @@ import {
 } from "../../domain/payout";
 import { rebuySecondsRemaining } from "../../domain/clock";
 
+export function ActivePublicClockPage() {
+  const { data: active, loading, error, reload } = useAsync(getActiveGameday, []);
+
+  useEffect(() => {
+    const poll = window.setInterval(reload, 5000);
+    return () => window.clearInterval(poll);
+  }, [reload]);
+
+  if (loading && !active) return <div className="app">Chargement de l'horloge…</div>;
+  if (error) return <div className="app">Erreur : {error.message}</div>;
+  if (!active) return <div className="app">Aucune horloge en cours.</div>;
+
+  return <PublicClockDisplay gamedayId={active.id} />;
+}
+
 export default function PublicClockPage() {
-  const { gamedayId } = useParams();
+  const { gamedayId: routeGamedayId } = useParams();
+  if (!routeGamedayId) return <div className="app">Aucune horloge en cours.</div>;
+  return <PublicClockDisplay gamedayId={routeGamedayId} />;
+}
+
+function PublicClockDisplay({ gamedayId }: { gamedayId: string }) {
   const { data } = useGameday(gamedayId!);
   const { clock, state } = useClock(
     gamedayId!,

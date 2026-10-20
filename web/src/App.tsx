@@ -20,7 +20,7 @@ import PublicLayout from "./features/public/PublicLayout";
 import StandingsPage from "./features/public/StandingsPage";
 import SevenTwoPage from "./features/public/SevenTwoPage";
 import ResultsPage from "./features/public/ResultsPage";
-import PublicClockPage from "./features/public/PublicClockPage";
+import PublicClockPage, { ActivePublicClockPage } from "./features/public/PublicClockPage";
 import PublicPayoutPage from "./features/public/PublicPayoutPage";
 import PublicHome from "./features/public/PublicHome";
 
@@ -44,6 +44,7 @@ export default function App() {
         <Route path="results" element={<ResultsPage />} />
       </Route>
       <Route path="/pub/:seasonId/clock/:gamedayId" element={<PublicClockPage />} />
+      <Route path="/pub/clock" element={<ActivePublicClockPage />} />
       <Route path="/pub/:seasonId/payout/:gamedayId" element={<PublicPayoutPage />} />
 
       {/* Admin */}

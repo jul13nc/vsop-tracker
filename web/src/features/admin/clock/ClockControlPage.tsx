@@ -65,7 +65,7 @@ export default function ClockControlPage() {
   );
   const paidPlaces = paidPlacesForTotal(totalBet, data.season.payout_table);
 
-  const pubLink = `/pub/${data.season.id}/clock/${gamedayId}`;
+  const pubLink = "/pub/clock";
 
   return (
     <ClockView
