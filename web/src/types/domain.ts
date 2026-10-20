@@ -13,6 +13,8 @@ export interface ChipType {
   name: string;
   value: number;
   count: number;
+  /** Optional hex face color (e.g. "#7d55c7"); falls back to the name. */
+  color?: string;
 }
 
 export interface BlindLevel {

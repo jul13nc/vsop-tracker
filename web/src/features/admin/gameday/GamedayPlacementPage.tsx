@@ -4,6 +4,7 @@ import { listPlayers } from "../../../api/players";
 import { getSeason } from "../../../api/seasons";
 import { createGameday } from "../../../api/gamedays";
 import { useAsync } from "../../../hooks/useAsync";
+import ChipStack from "../../../components/ChipStack";
 import { startingStackValue } from "../../../domain/chips";
 import {
   groupByTable,
@@ -95,18 +96,7 @@ export default function GamedayPlacementPage() {
       {season && (
         <div className="card">
           <h3>Stack de départ</h3>
-          <table>
-            <tbody>
-              {season.chip_config.map((c) => (
-                <tr key={c.name}>
-                  <td>{c.name}</td>
-                  <td>valeur {c.value}</td>
-                  <td>×{c.count}</td>
-                  <td>{c.value * c.count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ChipStack chips={season.chip_config} />
           <p className="muted">
             Chaque joueur reçoit {startingStackValue(season.chip_config)}{" "}
             jetons ({setup.playerIds.length} participants).
