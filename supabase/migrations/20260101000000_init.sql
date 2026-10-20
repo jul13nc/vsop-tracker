@@ -1,4 +1,4 @@
--- VSOP Poker Championship Tracker — initial schema
+-- VSOP Poker Championship Tracker — complete schema for fresh database resets
 -- Human-readable text ids throughout (player slugs, season "2026-2027", gameday dates).
 
 -- =========================================================================
@@ -39,6 +39,7 @@ create table seasons (
   ]'::jsonb,
   points_scheme   jsonb not null default '[10,7,5,3,2,1]'::jsonb,
   blind_level_minutes int not null default 20,
+  rebuy_timeout_minutes int not null default 90,
   blind_structure jsonb not null default '[
     {"level":1,"small":25,"big":50},
     {"level":2,"small":50,"big":100},
@@ -154,6 +155,7 @@ create policy "public read clock"     on tournament_clock for select using (true
 create policy "auth write players"   on players          for all to authenticated using (true) with check (true);
 create policy "auth write seasons"   on seasons          for all to authenticated using (true) with check (true);
 create policy "auth write gamedays"  on gamedays         for all to authenticated using (true) with check (true);
+create policy "auth delete gamedays" on gamedays          for delete to authenticated using (true);
 create policy "auth write gp"        on gameday_players  for all to authenticated using (true) with check (true);
 create policy "auth write events"    on game_events      for all to authenticated using (true) with check (true);
 create policy "auth write clock"     on tournament_clock for all to authenticated using (true) with check (true);
@@ -166,11 +168,16 @@ declare
   closed boolean;
   sid text;
 begin
+  -- Deletion must return OLD; returning NEW (NULL for DELETE) cancels it.
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+
   if tg_table_name = 'gamedays' then
-    sid := coalesce(new.season_id, old.season_id);
+    sid := new.season_id;
   else
     select season_id into sid from gamedays
-      where id = coalesce(new.gameday_id, old.gameday_id);
+      where id = new.gameday_id;
   end if;
 
   select is_closed into closed from seasons where id = sid;
