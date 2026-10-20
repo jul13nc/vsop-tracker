@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
 import { formatBlinds, formatClock, type ClockState } from "../domain/clock";
+import {
+  playLevelChangeSound,
+  playLevelWarningSound,
+} from "../lib/audio";
 import type { BlindLevel } from "../types/domain";
 
 interface Props {
@@ -15,26 +19,6 @@ interface Props {
   flash: boolean;
   playBeep: boolean;
   children?: React.ReactNode;
-}
-
-/** Plays a short beep using the Web Audio API. */
-function beep() {
-  try {
-    const ctx = new (window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.6);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
-  } catch {
-    /* audio not available */
-  }
 }
 
 export default function ClockView({
@@ -54,11 +38,28 @@ export default function ClockView({
   const beeped = useRef(false);
   useEffect(() => {
     if (flash && playBeep && !beeped.current) {
-      beep();
+      playLevelChangeSound();
       beeped.current = true;
     }
     if (!flash) beeped.current = false;
   }, [flash, playBeep]);
+
+  // One-minute warning before the blinds go up (once per level).
+  const warnedLevel = useRef<number | null>(null);
+  useEffect(() => {
+    const level = state.level?.level ?? null;
+    if (
+      !playBeep ||
+      flash ||
+      state.secondsRemaining === 0 ||
+      state.secondsRemaining > 60 ||
+      warnedLevel.current === level
+    ) {
+      return;
+    }
+    warnedLevel.current = level;
+    playLevelWarningSound();
+  }, [state.level?.level, state.secondsRemaining, playBeep, flash]);
 
   return (
     <div className={`clock${flash ? " flash" : ""}${payout ? " clock--public" : ""}`}>
