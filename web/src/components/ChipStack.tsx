@@ -51,9 +51,9 @@ export default function ChipStack({ chips }: Props) {
               </span>
             </div>
             <div className="chip-stack__label">
-              <strong>{chip.name}</strong>
+              <strong>×{chip.count} </strong>
               <span className="muted">
-                ×{chip.count} · {chip.value * chip.count}
+                {chip.value * chip.count}
               </span>
             </div>
           </div>

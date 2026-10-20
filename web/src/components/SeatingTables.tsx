@@ -11,7 +11,7 @@ export default function SeatingTables({ seating, nameById }: Props) {
   return (
     <>
       <p className="muted" style={{ margin: "0 0 12px" }}>
-        Numéro 1 au Bouton, ensuite en sens horaire
+        Numéro 1 au BTN, ensuite en sens horaire
       </p>
       <div className="tables-grid">
         {[...tables.entries()].map(([table, seats]) => (
