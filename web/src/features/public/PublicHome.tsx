@@ -8,7 +8,6 @@ export default function PublicHome() {
     <div className="app">
       <header className="public-hero">
         <img className="brand-logo brand-logo--hero" src="/Logo_VSOP.png" alt="VSOP" />
-        <p className="muted">Comme les WSOP, le 7/2 en plus !</p>
       </header>
       {loading && <p>Chargement…</p>}
       {error && <p style={{ color: "#ffbfb5" }}>{error.message}</p>}
