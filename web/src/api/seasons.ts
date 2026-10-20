@@ -29,6 +29,11 @@ export async function getSeason(id: string): Promise<Season | null> {
   return data;
 }
 
+export async function deleteSeason(id: string): Promise<void> {
+  const { error } = await supabase.from("seasons").delete().eq("id", id);
+  if (error) throw error;
+}
+
 /** Create a season from a label like "2026/2027". Id = "2026-2027". */
 export async function createSeason(label: string): Promise<Season> {
   const id = label.trim().replace(/\//g, "-");

@@ -43,6 +43,11 @@ export async function getGameday(id: string): Promise<Gameday | null> {
   return data;
 }
 
+export async function deleteGameday(id: string): Promise<void> {
+  const { error } = await supabase.from("gamedays").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function createGameday(
   seasonId: string,
   date: string,

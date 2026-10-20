@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { closeSeason, getSeason, reopenSeason, updateSeason } from "../../../api/seasons";
-import { listGamedays } from "../../../api/gamedays";
+import { deleteGameday, listGamedays } from "../../../api/gamedays";
 import { useAsync } from "../../../hooks/useAsync";
 import type { BlindLevel, Season } from "../../../types/domain";
 
@@ -177,6 +177,7 @@ export default function SeasonEditorPage() {
 
   const [draft, setDraft] = useState<Season | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (season) setDraft(season);
@@ -221,6 +222,17 @@ export default function SeasonEditorPage() {
     }
   }
 
+  async function removeGameday(id: string, date: string) {
+    if (!confirm(`Supprimer la journée du ${date} et recalculer le classement ? Cette action est irréversible.`)) return;
+    setDeleteError(null);
+    try {
+      await deleteGameday(id);
+      reloadGd();
+    } catch (caught) {
+      setDeleteError((caught as Error).message);
+    }
+  }
+
   return (
     <div>
       <div className="row spread">
@@ -256,6 +268,13 @@ export default function SeasonEditorPage() {
                   <Link className="btn btn--ghost" to={`/admin/gameday/${g.id}/live`}>
                     Ouvrir
                   </Link>
+                  <button
+                    className="btn btn--danger"
+                    onClick={() => removeGameday(g.id, g.date)}
+                    aria-label={`Supprimer la journée du ${g.date}`}
+                  >
+                    Supprimer
+                  </button>
                 </td>
               </tr>
             ))}
@@ -267,6 +286,7 @@ export default function SeasonEditorPage() {
           </tbody>
         </table>
       </div>
+      {deleteError && <p style={{ color: "#ffbfb5" }}>{deleteError}</p>}
 
       <div className="card">
         <label>Cave (€)</label>
