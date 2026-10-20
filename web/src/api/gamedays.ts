@@ -13,25 +13,29 @@ export async function listGamedays(seasonId: string): Promise<Gameday[]> {
   return data ?? [];
 }
 
-/** Most recent gameday that is live or finished (clock worth showing). */
+/** Most recent gameday the public page should show (setup, live or finished). */
 export async function getActiveGameday(
   seasonId?: string,
 ): Promise<Gameday | null> {
   // `reopened` is a client-side status but isn't present in the deployed
   // gameday_status enum yet; querying it makes Postgres reject the whole query.
-  for (const status of ["live", "finished"] as const) {
+  const find = async (statuses: GamedayStatus[]): Promise<Gameday | null> => {
     let query = supabase
       .from("gamedays")
       .select("*")
-      .eq("status", status)
+      .in("status", statuses)
       .order("date", { ascending: false })
       .limit(1);
     if (seasonId) query = query.eq("season_id", seasonId);
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
-    if (data) return data;
-  }
-  return null;
+    return data;
+  };
+
+  // In-progress gamedays (live or setup) win over finished ones; among them
+  // the most recent date wins, so a freshly created "setup" gameday is never
+  // shadowed by an old "live" one that was never finished.
+  return (await find(["live", "setup"])) ?? (await find(["finished"]));
 }
 
 export async function getGameday(id: string): Promise<Gameday | null> {

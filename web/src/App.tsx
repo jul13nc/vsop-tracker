@@ -44,6 +44,7 @@ export default function App() {
         <Route path="seven-two" element={<SevenTwoPage />} />
         <Route path="results" element={<ResultsPage />} />
       </Route>
+      <Route path="/pub/:seasonId/gameday/:gamedayId" element={<PublicClockPage />} />
       <Route path="/pub/:seasonId/clock/:gamedayId" element={<PublicClockPage />} />
       <Route path="/pub/clock" element={<ActivePublicClockPage />} />
       <Route path="/pub/:seasonId/payout/:gamedayId" element={<PublicPayoutPage />} />

@@ -13,6 +13,7 @@ import { averageStack } from "../../../domain/chips";
 import { playersRemaining, totalRebuys } from "../../../domain/ranking";
 import { paidPlacesForTotal, totalBetEuros } from "../../../domain/payout";
 import { rebuySecondsRemaining } from "../../../domain/clock";
+import { setGamedayStatus } from "../../../api/gamedays";
 
 export default function ClockControlPage() {
   const { gamedayId } = useParams();
@@ -67,6 +68,19 @@ export default function ClockControlPage() {
 
   const pubLink = "/pub/clock";
 
+  // Captured non-null after the loading guard above.
+  const currentClock = clock;
+  const currentGameday = data.gameday;
+
+  async function startGameday() {
+    await startClock(currentClock);
+    // Starting the clock launches the gameday: the public page switches from
+    // the stacks/placement screen to the clock.
+    if (currentGameday.status === "setup") {
+      await setGamedayStatus(gamedayId!, "live");
+    }
+  }
+
   return (
     <ClockView
       state={state}
@@ -94,7 +108,7 @@ export default function ClockControlPage() {
             Pause
           </button>
         ) : (
-          <button className="btn" onClick={() => startClock(clock)}>
+          <button className="btn" onClick={() => void startGameday()}>
             Démarrer
           </button>
         )}

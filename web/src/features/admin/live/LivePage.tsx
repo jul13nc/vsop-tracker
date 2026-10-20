@@ -5,6 +5,8 @@ import { useGameday } from "../../../hooks/useGameday";
 import { addEvent, undoLast } from "../../../api/events";
 import { setGamedayStatus } from "../../../api/gamedays";
 import { ensureClock, pauseClock } from "../../../api/clock";
+import SeatingTables from "../../../components/SeatingTables";
+import { seatingFromRows } from "../../../domain/seating";
 import {
   playersRemaining,
   replayEvents,
@@ -20,15 +22,16 @@ export default function LivePage() {
   const finishHandled = useRef(false);
   const { data, loading, error, reload } = useGameday(gamedayId!, 0);
 
-  // Mark the gameday "live" on first open so the public clock link appears.
   useEffect(() => {
-    if (data?.gameday.status === "setup") {
-      setGamedayStatus(data.gameday.id, "live").then(reload);
+    // The gameday stays "setup" (public page shows stacks + placement) until
+    // it is actually launched: clock start or first recorded event.
+    if (
+      !data ||
+      (data.gameday.status !== "live" && data.gameday.status !== "setup") ||
+      finishHandled.current
+    ) {
+      return;
     }
-  }, [data?.gameday.status, data?.gameday.id, reload]);
-
-  useEffect(() => {
-    if (!data || data.gameday.status !== "live" || finishHandled.current) return;
     const playerIds = data.players.map((player) => player.id);
     if (playersRemaining(playerIds, data.events) !== 1) return;
 
@@ -47,7 +50,7 @@ export default function LivePage() {
             data.season.blind_level_minutes * 60 - current.secondsRemaining;
           await pauseClock(clock, elapsed);
         }
-        if (data.gameday.status === "live") {
+        if (data.gameday.status === "live" || data.gameday.status === "setup") {
           await setGamedayStatus(gamedayId!, "finished");
         }
         navigate(`/admin/gameday/${gamedayId}/validate`, { replace: true });
@@ -64,7 +67,7 @@ export default function LivePage() {
   if (error) return <div className="app">Erreur : {error.message}</div>;
   if (!data) return null;
 
-  const { gameday, season, players, events } = data;
+  const { gameday, season, players, events, gamedayPlayers } = data;
   const ids = players.map((p) => p.id);
   const state = replayEvents(ids, events);
   const remaining = playersRemaining(ids, events);
@@ -72,12 +75,19 @@ export default function LivePage() {
   const bet = totalBetEuros(players.length, rebuys, season.buyin_cents);
   const sevenTwo = sevenTwoCounts(events);
   const finished = remaining <= 1;
+  const nameById = new Map(players.map((p) => [p.id, p.display_name]));
+  const { seating, unplaced } = seatingFromRows(gamedayPlayers);
 
   async function act(
     type: "rebuy" | "elimination" | "seven_two",
     playerId: string,
   ) {
     await addEvent(gamedayId!, type, playerId);
+    // The first recorded action launches the gameday: the public page then
+    // switches from the stacks/placement screen to the clock.
+    if (gameday.status === "setup") {
+      await setGamedayStatus(gamedayId!, "live");
+    }
     reload();
   }
 
@@ -116,6 +126,18 @@ export default function LivePage() {
           Total : <b>{bet}€</b>
         </div>
       </div>
+
+      {seating.length > 0 && (
+        <details className="card">
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Placement des tables
+          </summary>
+          <SeatingTables seating={seating} nameById={nameById} />
+          {unplaced.length > 0 && (
+            <p className="muted">Non placés : {unplaced.join(", ")}</p>
+          )}
+        </details>
+      )}
 
       <div className="grid-players">
         {players.map((p) => {

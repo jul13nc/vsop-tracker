@@ -30,7 +30,7 @@ export default function PublicLayout() {
         <NavLink to={`/pub/${seasonId}/results`}>Journées</NavLink>
         {active && (
           <NavLink to="/pub/clock">
-            🕐 Horloge live
+            🎫 Journée publique
           </NavLink>
         )}
       </nav>

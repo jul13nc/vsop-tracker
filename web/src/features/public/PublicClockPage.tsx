@@ -5,6 +5,7 @@ import { useGameday } from "../../hooks/useGameday";
 import { useAsync } from "../../hooks/useAsync";
 import { useClock } from "../../hooks/useClock";
 import ClockView from "../../components/ClockView";
+import PublicPreGameView from "./PublicPreGameView";
 import { averageStack } from "../../domain/chips";
 import { playersRemaining, totalRebuys } from "../../domain/ranking";
 import {
@@ -22,16 +23,16 @@ export function ActivePublicClockPage() {
     return () => window.clearInterval(poll);
   }, [reload]);
 
-  if (loading && !active) return <div className="app">Chargement de l'horloge…</div>;
+  if (loading && !active) return <div className="app">Chargement de la journée…</div>;
   if (error) return <div className="app">Erreur : {error.message}</div>;
-  if (!active) return <div className="app">Aucune horloge en cours.</div>;
+  if (!active) return <div className="app">Aucune journée en cours.</div>;
 
   return <PublicClockDisplay gamedayId={active.id} />;
 }
 
 export default function PublicClockPage() {
   const { gamedayId: routeGamedayId } = useParams();
-  if (!routeGamedayId) return <div className="app">Aucune horloge en cours.</div>;
+  if (!routeGamedayId) return <div className="app">Aucune journée en cours.</div>;
   return <PublicClockDisplay gamedayId={routeGamedayId} />;
 }
 
@@ -43,7 +44,22 @@ function PublicClockDisplay({ gamedayId }: { gamedayId: string }) {
     data?.season.blind_level_minutes ?? 20,
   );
 
-  if (!data || !state || !clock)
+  if (!data) return <div className="app">Chargement de la journée…</div>;
+
+  // Created but not started yet: show the stacks and the table placement.
+  // Switches to the clock once the admin starts the gameday (status "live").
+  if (data.gameday.status === "setup") {
+    return (
+      <PublicPreGameView
+        gameday={data.gameday}
+        season={data.season}
+        players={data.players}
+        gamedayPlayers={data.gamedayPlayers}
+      />
+    );
+  }
+
+  if (!state || !clock)
     return <div className="app">Chargement de l'horloge…</div>;
 
   // Once the gameday is validated, switch to the standings.

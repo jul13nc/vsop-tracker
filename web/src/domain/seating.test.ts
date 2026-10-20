@@ -3,6 +3,7 @@ import {
   groupByTable,
   MAX_PLAYERS_PER_TABLE,
   randomSeating,
+  seatingFromRows,
   shuffle,
   type SeatingEntry,
 } from "./seating";
@@ -86,6 +87,22 @@ describe("randomSeating", () => {
 
   it("returns an empty seating for no players", () => {
     expect(randomSeating([], 9, seeded(5))).toEqual([]);
+  });
+});
+
+describe("seatingFromRows", () => {
+  it("rebuilds the seating and lists unplaced players", () => {
+    const { seating, unplaced } = seatingFromRows([
+      { player_id: "b", table_number: 1, seat_number: 2 },
+      { player_id: "a", table_number: 1, seat_number: 1 },
+      { player_id: "c", table_number: null, seat_number: 1 },
+      { player_id: "d", table_number: 2, seat_number: null },
+    ]);
+    expect(seating).toEqual([
+      { playerId: "b", table: 1, seat: 2 },
+      { playerId: "a", table: 1, seat: 1 },
+    ]);
+    expect(unplaced).toEqual(["c", "d"]);
   });
 });
 

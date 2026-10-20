@@ -5,9 +5,10 @@ import { getSeason } from "../../../api/seasons";
 import { createGameday } from "../../../api/gamedays";
 import { useAsync } from "../../../hooks/useAsync";
 import ChipStack from "../../../components/ChipStack";
+import SeatingTables from "../../../components/SeatingTables";
 import { startingStackValue } from "../../../domain/chips";
+import { formatGamedayDate } from "../../../domain/dates";
 import {
-  groupByTable,
   MAX_PLAYERS_PER_TABLE,
   randomSeating,
   type SeatingEntry,
@@ -38,7 +39,6 @@ export default function GamedayPlacementPage() {
   );
   const [busy, setBusy] = useState(false);
 
-  const tables = useMemo(() => groupByTable(seating), [seating]);
   const nameById = useMemo(
     () => new Map((players ?? []).map((p) => [p.id, p.display_name])),
     [players],
@@ -51,10 +51,7 @@ export default function GamedayPlacementPage() {
   // Captured non-null so closures below don't need to re-narrow.
   const setup: GamedaySetupState = state;
 
-  const dateLabel = new Date(`${setup.date}T00:00:00`).toLocaleDateString(
-    "fr-FR",
-    { day: "numeric", month: "long", year: "numeric" },
-  );
+  const dateLabel = formatGamedayDate(setup.date);
 
   function redraw(nextPerTable = playersPerTable) {
     setSeating(randomSeating(playerIds, nextPerTable));
@@ -128,21 +125,7 @@ export default function GamedayPlacementPage() {
           onChange={(e) => changePerTable(e.target.value)}
         />
 
-        <div className="tables-grid">
-          {[...tables.entries()].map(([table, seats]) => (
-            <div key={table} className="poker-table">
-              <h4>Table {table}</h4>
-              <ol>
-                {seats.map((s) => (
-                  <li key={s.playerId}>
-                    <span className="seat-num">{s.seat}</span>
-                    <span>{nameById.get(s.playerId) ?? s.playerId}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
+        <SeatingTables seating={seating} nameById={nameById} />
       </div>
 
       <div className="row spread" style={{ marginTop: 4 }}>
@@ -158,7 +141,7 @@ export default function GamedayPlacementPage() {
           Retour
         </button>
         <button className="btn" onClick={start} disabled={busy}>
-          {busy ? "Création…" : "Démarrer la journée"}
+          {busy ? "Création…" : "Créer la journée"}
         </button>
       </div>
     </div>

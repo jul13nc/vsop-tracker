@@ -64,3 +64,35 @@ export function groupByTable(
   }
   return new Map([...tables.entries()].sort((a, b) => a[0] - b[0]));
 }
+
+/** Minimal gameday_players shape needed to rebuild a seating. */
+export interface SeatingRow {
+  player_id: string;
+  table_number: number | null;
+  seat_number: number | null;
+}
+
+/**
+ * Rebuild a seating from persisted gameday_players rows. Players without a
+ * stored table/seat (gamedays predating the placement feature) are returned
+ * separately as player ids.
+ */
+export function seatingFromRows(rows: readonly SeatingRow[]): {
+  seating: SeatingEntry[];
+  unplaced: string[];
+} {
+  const seating: SeatingEntry[] = [];
+  const unplaced: string[] = [];
+  for (const row of rows) {
+    if (row.table_number != null && row.seat_number != null) {
+      seating.push({
+        playerId: row.player_id,
+        table: row.table_number,
+        seat: row.seat_number,
+      });
+    } else {
+      unplaced.push(row.player_id);
+    }
+  }
+  return { seating, unplaced };
+}
