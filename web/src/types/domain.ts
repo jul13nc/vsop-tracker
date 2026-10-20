@@ -54,6 +54,9 @@ export interface GamedayPlayer {
   eliminated_order: number | null;
   final_rank: number | null;
   points: number | null;
+  /** Seating assigned at creation (random placement); null if unset. */
+  table_number: number | null;
+  seat_number: number | null;
 }
 
 export type GameEventType = "rebuy" | "elimination" | "seven_two" | "undo";

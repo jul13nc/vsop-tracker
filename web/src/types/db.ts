@@ -77,6 +77,8 @@ export interface Database {
           eliminated_order: number | null;
           final_rank: number | null;
           points: number | null;
+          table_number: number | null;
+          seat_number: number | null;
         };
         Insert: {
           gameday_id: string;
@@ -86,6 +88,8 @@ export interface Database {
           eliminated_order?: number | null;
           final_rank?: number | null;
           points?: number | null;
+          table_number?: number | null;
+          seat_number?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["gameday_players"]["Insert"]>;
         Relationships: [];

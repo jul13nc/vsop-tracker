@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 import type { Gameday, GamedayPlayer, GamedayStatus } from "../types/domain";
+import type { SeatingEntry } from "../domain/seating";
 import { gamedayId } from "../lib/ids";
 
 export async function listGamedays(seasonId: string): Promise<Gameday[]> {
@@ -59,6 +60,7 @@ export async function createGameday(
   date: string,
   countsDouble: boolean,
   playerIds: string[],
+  seating: SeatingEntry[] = [],
 ): Promise<Gameday> {
   const id = gamedayId(seasonId, date);
   const { data, error } = await supabase
@@ -75,7 +77,16 @@ export async function createGameday(
   if (error) throw error;
 
   if (playerIds.length) {
-    const rows = playerIds.map((player_id) => ({ gameday_id: id, player_id }));
+    const byPlayer = new Map(seating.map((s) => [s.playerId, s]));
+    const rows = playerIds.map((player_id) => {
+      const seat = byPlayer.get(player_id);
+      return {
+        gameday_id: id,
+        player_id,
+        table_number: seat?.table ?? null,
+        seat_number: seat?.seat ?? null,
+      };
+    });
     const { error: e2 } = await supabase.from("gameday_players").insert(rows);
     if (e2) throw e2;
   }

@@ -11,6 +11,7 @@ import SeasonsPage from "./features/admin/seasons/SeasonsPage";
 import SeasonEditorPage from "./features/admin/seasons/SeasonEditorPage";
 import PlayersPage from "./features/admin/PlayersPage";
 import GamedaySetupPage from "./features/admin/gameday/GamedaySetupPage";
+import GamedayPlacementPage from "./features/admin/gameday/GamedayPlacementPage";
 import LivePage from "./features/admin/live/LivePage";
 import ClockControlPage from "./features/admin/clock/ClockControlPage";
 import ValidatePage from "./features/admin/validate/ValidatePage";
@@ -64,6 +65,10 @@ export default function App() {
         <Route path="seasons/:seasonId" element={<SeasonEditorPage />} />
         <Route path="players" element={<PlayersPage />} />
         <Route path="seasons/:seasonId/gameday/new" element={<GamedaySetupPage />} />
+        <Route
+          path="seasons/:seasonId/gameday/new/placement"
+          element={<GamedayPlacementPage />}
+        />
         <Route path="gameday/:gamedayId/live" element={<LivePage />} />
         <Route path="gameday/:gamedayId/clock" element={<ClockControlPage />} />
         <Route path="gameday/:gamedayId/validate" element={<ValidatePage />} />

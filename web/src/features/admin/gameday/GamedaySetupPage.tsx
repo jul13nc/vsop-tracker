@@ -1,21 +1,33 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { listPlayers } from "../../../api/players";
-import { getSeason } from "../../../api/seasons";
-import { createGameday } from "../../../api/gamedays";
 import { useAsync } from "../../../hooks/useAsync";
-import { startingStackValue } from "../../../domain/chips";
+
+/** State handed over to the placement step via the router location state. */
+export interface GamedaySetupState {
+  date: string;
+  countsDouble: boolean;
+  playerIds: string[];
+}
 
 export default function GamedaySetupPage() {
   const { seasonId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: players } = useAsync(listPlayers, []);
-  const { data: season } = useAsync(() => getSeason(seasonId!), [seasonId]);
 
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [countsDouble, setCountsDouble] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
+  // Restored when coming back from the placement step.
+  const restore = location.state as Partial<GamedaySetupState> | null;
+
+  const [date, setDate] = useState(
+    restore?.date ?? new Date().toISOString().slice(0, 10),
+  );
+  const [countsDouble, setCountsDouble] = useState(
+    restore?.countsDouble ?? false,
+  );
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(restore?.playerIds ?? []),
+  );
 
   function toggle(id: string) {
     const next = new Set(selected);
@@ -27,25 +39,19 @@ export default function GamedaySetupPage() {
     setSelected(next);
   }
 
-  async function create() {
+  function goToPlacement() {
     if (selected.size < 2) {
       alert("Sélectionne au moins 2 joueurs.");
       return;
     }
-    setBusy(true);
-    try {
-      const gd = await createGameday(
-        seasonId!,
-        date,
-        countsDouble,
-        [...selected],
-      );
-      navigate(`/admin/gameday/${gd.id}/live`);
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    const state: GamedaySetupState = {
+      date,
+      countsDouble,
+      playerIds: [...selected],
+    };
+    navigate(`/admin/seasons/${seasonId}/gameday/new/placement`, {
+      state,
+    });
   }
 
   return (
@@ -65,27 +71,6 @@ export default function GamedaySetupPage() {
         </label>
       </div>
 
-      {season && (
-        <div className="card">
-          <h3>Répartition des jetons</h3>
-          <table>
-            <tbody>
-              {season.chip_config.map((c) => (
-                <tr key={c.name}>
-                  <td>{c.name}</td>
-                  <td>valeur {c.value}</td>
-                  <td>×{c.count}</td>
-                  <td>{c.value * c.count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="muted">
-            Stack de départ : {startingStackValue(season.chip_config)} jetons
-          </p>
-        </div>
-      )}
-
       <div className="card">
         <h3>Participants ({selected.size})</h3>
         <div className="grid-players">
@@ -103,8 +88,8 @@ export default function GamedaySetupPage() {
         </div>
       </div>
 
-      <button className="btn btn--block" onClick={create} disabled={busy}>
-        {busy ? "Création…" : "Démarrer la journée"}
+      <button className="btn btn--block" onClick={goToPlacement}>
+        Continuer · placement des joueurs
       </button>
     </div>
   );
