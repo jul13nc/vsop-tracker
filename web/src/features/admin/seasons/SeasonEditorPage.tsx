@@ -178,6 +178,7 @@ export default function SeasonEditorPage() {
   const [draft, setDraft] = useState<Season | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingGamedayId, setDeletingGamedayId] = useState<string | null>(null);
 
   useEffect(() => {
     if (season) setDraft(season);
@@ -225,11 +226,14 @@ export default function SeasonEditorPage() {
   async function removeGameday(id: string, date: string) {
     if (!confirm(`Supprimer la journée du ${date} et recalculer le classement ? Cette action est irréversible.`)) return;
     setDeleteError(null);
+    setDeletingGamedayId(id);
     try {
       await deleteGameday(id);
-      reloadGd();
+      await reloadGd();
     } catch (caught) {
       setDeleteError((caught as Error).message);
+    } finally {
+      setDeletingGamedayId(null);
     }
   }
 
@@ -269,11 +273,13 @@ export default function SeasonEditorPage() {
                     Ouvrir
                   </Link>
                   <button
+                    type="button"
                     className="btn btn--danger"
                     onClick={() => removeGameday(g.id, g.date)}
+                    disabled={deletingGamedayId === g.id}
                     aria-label={`Supprimer la journée du ${g.date}`}
                   >
-                    Supprimer
+                    {deletingGamedayId === g.id ? "Suppression…" : "Supprimer"}
                   </button>
                 </td>
               </tr>

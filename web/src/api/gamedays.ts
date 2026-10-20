@@ -44,8 +44,14 @@ export async function getGameday(id: string): Promise<Gameday | null> {
 }
 
 export async function deleteGameday(id: string): Promise<void> {
-  const { error } = await supabase.from("gamedays").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("gamedays")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("Journée introuvable ou suppression non autorisée.");
 }
 
 export async function createGameday(
