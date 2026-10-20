@@ -299,7 +299,20 @@ export default function SeasonEditorPage() {
             setDraft({ ...draft, buyin_cents: Math.round(+e.target.value * 100) })
           }
         />
-
+        <label>Durée autorisée pour les recaves (minutes)</label>
+        <input
+            type="number"
+            min="0"
+            step="1"
+            disabled={readOnly}
+            value={draft.rebuy_timeout_minutes}
+            onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  rebuy_timeout_minutes: Math.max(0, Number(e.target.value)),
+                })
+            }
+        />
         <JsonField
           label="Répartition payouts (par total misé)"
           value={draft.payout_table}
@@ -324,21 +337,6 @@ export default function SeasonEditorPage() {
           }
           onLevelsChange={(blind_structure) =>
             setDraft({ ...draft, blind_structure })
-          }
-        />
-
-        <label>Durée autorisée pour les recaves (minutes)</label>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          disabled={readOnly}
-          value={draft.rebuy_timeout_minutes}
-          onChange={(e) =>
-            setDraft({
-              ...draft,
-              rebuy_timeout_minutes: Math.max(0, Number(e.target.value)),
-            })
           }
         />
 
