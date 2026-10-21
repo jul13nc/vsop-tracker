@@ -66,7 +66,13 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["gamedays"]["Insert"]>;
-        Relationships: [];
+        Relationships: [{
+          foreignKeyName: "gamedays_season_id_fkey";
+          columns: ["season_id"];
+          isOneToOne: false;
+          referencedRelation: "seasons";
+          referencedColumns: ["id"];
+        }];
       };
       gameday_players: {
         Row: {
@@ -92,7 +98,19 @@ export interface Database {
           seat_number?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["gameday_players"]["Insert"]>;
-        Relationships: [];
+        Relationships: [{
+          foreignKeyName: "gameday_players_gameday_id_fkey";
+          columns: ["gameday_id"];
+          isOneToOne: false;
+          referencedRelation: "gamedays";
+          referencedColumns: ["id"];
+        }, {
+          foreignKeyName: "gameday_players_player_id_fkey";
+          columns: ["player_id"];
+          isOneToOne: false;
+          referencedRelation: "players";
+          referencedColumns: ["id"];
+        }];
       };
       game_events: {
         Row: {
@@ -112,7 +130,13 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["game_events"]["Insert"]>;
-        Relationships: [];
+        Relationships: [{
+          foreignKeyName: "game_events_gameday_id_fkey";
+          columns: ["gameday_id"];
+          isOneToOne: false;
+          referencedRelation: "gamedays";
+          referencedColumns: ["id"];
+        }];
       };
       tournament_clock: {
         Row: {
@@ -148,7 +172,29 @@ export interface Database {
         Relationships: [];
       };
     };
-    Functions: Record<string, never>;
+    Functions: {
+      append_game_event: {
+        Args: {
+          p_gameday_id: string;
+          p_type: GameEventType;
+          p_player_id: string;
+          p_payload: Record<string, unknown> | null;
+        };
+        Returns: Database["public"]["Tables"]["game_events"]["Row"];
+      };
+      undo_game_event: {
+        Args: { p_gameday_id: string };
+        Returns: undefined;
+      };
+      save_gameday_results: {
+        Args: {
+          p_gameday_id: string;
+          p_expected_seq: number;
+          p_results: { player_id: string; final_rank: number }[];
+        };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

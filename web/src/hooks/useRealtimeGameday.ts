@@ -10,7 +10,11 @@ export function useRealtimeGameday(gamedayId: string | null, onChange: () => voi
 
   useEffect(() => {
     if (!gamedayId) return;
-    const fire = () => cb.current();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const fire = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => cb.current(), 100);
+    };
     const channel = supabase
       .channel(`gameday:${gamedayId}`)
       .on(
@@ -25,16 +29,12 @@ export function useRealtimeGameday(gamedayId: string | null, onChange: () => voi
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "tournament_clock", filter: `gameday_id=eq.${gamedayId}` },
-        fire,
-      )
-      .on(
-        "postgres_changes",
         { event: "*", schema: "public", table: "gamedays", filter: `id=eq.${gamedayId}` },
         fire,
       )
       .subscribe();
     return () => {
+      clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [gamedayId]);

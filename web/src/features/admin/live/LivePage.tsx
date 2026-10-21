@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameday } from "../../../hooks/useGameday";
 import { addEvent, undoLast } from "../../../api/events";
@@ -20,6 +20,9 @@ export default function LivePage() {
   const { gamedayId } = useParams();
   const navigate = useNavigate();
   const finishHandled = useRef(false);
+  const acting = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const { data, loading, error, reload } = useGameday(gamedayId!, 0);
 
   useEffect(() => {
@@ -82,18 +85,27 @@ export default function LivePage() {
     type: "rebuy" | "elimination" | "seven_two",
     playerId: string,
   ) {
-    await addEvent(gamedayId!, type, playerId);
-    // The first recorded action launches the gameday: the public page then
-    // switches from the stacks/placement screen to the clock.
-    if (gameday.status === "setup") {
-      await setGamedayStatus(gamedayId!, "live");
-    }
-    reload();
+    await mutate(() => addEvent(gamedayId!, type, playerId));
   }
 
   async function undo() {
-    await undoLast(gamedayId!);
-    reload();
+    await mutate(() => undoLast(gamedayId!));
+  }
+
+  async function mutate(operation: () => Promise<unknown>) {
+    if (acting.current) return;
+    acting.current = true;
+    setPending(true);
+    setActionError(null);
+    try {
+      await operation();
+      reload();
+    } catch (caught) {
+      setActionError((caught as Error).message);
+    } finally {
+      acting.current = false;
+      setPending(false);
+    }
   }
 
   async function markFinished() {
@@ -109,11 +121,13 @@ export default function LivePage() {
           <Link className="btn btn--ghost" to={`/admin/gameday/${gameday.id}/clock`}>
             Horloge
           </Link>
-          <button className="btn btn--ghost" onClick={undo}>
+          <button className="btn btn--ghost" onClick={undo} disabled={pending}>
             Annuler
           </button>
         </div>
       </div>
+
+      {actionError && <p role="alert" style={{ color: "#ffbfb5" }}>{actionError}</p>}
 
       <div className="card row spread">
         <div>
@@ -163,20 +177,21 @@ export default function LivePage() {
                 <button
                   className="btn"
                   onClick={() => act("rebuy", p.id)}
-                  disabled={out}
+                  disabled={out || pending}
                 >
                   +Recave
                 </button>
                 <button
                   className="btn btn--ghost"
                   onClick={() => act("seven_two", p.id)}
+                  disabled={pending}
                 >
                   7/2
                 </button>
                 <button
                   className="btn btn--danger"
                   onClick={() => act("elimination", p.id)}
-                  disabled={out}
+                  disabled={out || pending}
                 >
                   Éliminé
                 </button>

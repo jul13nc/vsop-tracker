@@ -18,23 +18,15 @@ export async function addEvent(
   playerId: string,
   payload: Record<string, unknown> | null = null,
 ): Promise<GameEvent> {
-  const { data: last, error: e0 } = await supabase
-    .from("game_events")
-    .select("seq")
-    .eq("gameday_id", gamedayId)
-    .order("seq", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (e0) throw e0;
-
-  const seq = (last?.seq ?? 0) + 1;
-  const { data, error } = await supabase
-    .from("game_events")
-    .insert({ gameday_id: gamedayId, seq, type, player_id: playerId, payload })
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc("append_game_event", {
+    p_gameday_id: gamedayId,
+    p_type: type,
+    p_player_id: playerId,
+    p_payload: payload,
+  });
   if (error) throw error;
-  return data as GameEvent;
+  if (!data) throw new Error("Événement non enregistré");
+  return data;
 }
 
 /**
@@ -42,21 +34,6 @@ export async function addEvent(
  * already undone). Inserts an "undo" event referencing it.
  */
 export async function undoLast(gamedayId: string): Promise<void> {
-  const events = await listEvents(gamedayId);
-  const undone = new Set<number>();
-  for (const e of events) {
-    if (e.type === "undo") {
-      const t = Number(e.payload?.undoEventId);
-      if (!Number.isNaN(t)) undone.add(t);
-    }
-  }
-  const target = [...events]
-    .reverse()
-    .find((e) => e.type !== "undo" && !undone.has(e.id));
-  if (!target) return;
-
-  await addEvent(gamedayId, "undo", target.player_id, {
-    undoEventId: target.id,
-    undoneType: target.type,
-  });
+  const { error } = await supabase.rpc("undo_game_event", { p_gameday_id: gamedayId });
+  if (error) throw error;
 }

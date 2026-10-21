@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
-import { listEvents } from "./events";
+import { getGamedayBundle } from "./gamedays";
 import { computeGamedayRanking } from "../domain/ranking";
-import { pointsForRank } from "../domain/points";
 
 export interface StandingRow {
   season_id: string;
@@ -38,28 +37,15 @@ export async function getSevenTwoStandings(
  */
 export async function validateGameday(
   gamedayId: string,
-  playerIds: string[],
-  pointsScheme: number[],
-  countsDouble: boolean,
 ): Promise<void> {
-  // Reload the journal at validation time so undo events are always reflected,
-  // even when the validation screen was opened before the last change.
-  const events = await listEvents(gamedayId);
-  const ranking = computeGamedayRanking(playerIds, events);
-
-  for (const row of ranking) {
-    const points = pointsForRank(row.rank, pointsScheme, countsDouble);
-    const { error } = await supabase
-      .from("gameday_players")
-      .update({ final_rank: row.rank, points })
-      .eq("gameday_id", gamedayId)
-      .eq("player_id", row.playerId);
-    if (error) throw error;
-  }
-
-  const { error: e2 } = await supabase
-    .from("gamedays")
-    .update({ status: "validated" })
-    .eq("id", gamedayId);
-  if (e2) throw e2;
+  // Refresh participants and journal together. The RPC rejects results if an
+  // event arrives meanwhile, and commits every rank + status atomically.
+  const { players, events } = await getGamedayBundle(gamedayId);
+  const ranking = computeGamedayRanking(players.map((row) => row.id), events);
+  const { error } = await supabase.rpc("save_gameday_results", {
+    p_gameday_id: gamedayId,
+    p_expected_seq: events.reduce((seq, event) => Math.max(seq, event.seq), 0),
+    p_results: ranking.map((row) => ({ player_id: row.playerId, final_rank: row.rank })),
+  });
+  if (error) throw error;
 }

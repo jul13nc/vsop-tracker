@@ -1,7 +1,42 @@
 import { supabase } from "../lib/supabaseClient";
-import type { Gameday, GamedayPlayer, GamedayStatus } from "../types/domain";
+import type { GameEvent, Gameday, GamedayPlayer, GamedayStatus, Player, Season } from "../types/domain";
 import type { SeatingEntry } from "../domain/seating";
 import { gamedayId } from "../lib/ids";
+
+export interface GamedayBundle {
+  gameday: Gameday;
+  season: Season;
+  players: Player[];
+  gamedayPlayers: GamedayPlayer[];
+  events: GameEvent[];
+}
+
+/** Fetch one consistent snapshot, including only this gameday's participants. */
+export async function getGamedayBundle(id: string): Promise<GamedayBundle> {
+  const { data, error } = await supabase
+    .from("gamedays")
+    .select("*, season:seasons(*), gameday_players(*, player:players(*)), game_events(*)")
+    .eq("id", id)
+    .order("seq", { referencedTable: "game_events" })
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Journée introuvable");
+  const { season, gameday_players, game_events, ...gameday } = data;
+  if (!season) throw new Error("Saison introuvable");
+  const players = gameday_players.flatMap(({ player }) => player ? [player] : [])
+    .sort((a, b) => a.display_name.localeCompare(b.display_name));
+  return {
+    gameday,
+    season,
+    players,
+    gamedayPlayers: gameday_players.map((entry) => {
+      const { player, ...row } = entry;
+      void player;
+      return row;
+    }),
+    events: game_events,
+  };
+}
 
 export async function listGamedays(seasonId: string): Promise<Gameday[]> {
   const { data, error } = await supabase

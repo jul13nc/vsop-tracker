@@ -72,12 +72,7 @@ export default function ValidatePage() {
       : "Valider la journée et mettre à jour le classement ?";
     if (!confirm(message)) return;
     try {
-      await validateGameday(
-        gamedayId!,
-        ids,
-        season.points_scheme,
-        gameday.counts_double,
-      );
+      await validateGameday(gamedayId!);
       reload();
       navigate(`/admin/seasons/${season.id}`);
     } catch (e) {

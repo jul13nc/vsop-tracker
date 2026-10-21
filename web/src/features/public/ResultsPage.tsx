@@ -1,89 +1,17 @@
 import { useParams } from "react-router-dom";
-import { listGamedays, listGamedayPlayers } from "../../api/gamedays";
-import { listEvents } from "../../api/events";
-import { listPlayers } from "../../api/players";
+import { getSeasonResults } from "../../api/results";
 import { useAsync } from "../../hooks/useAsync";
-import { sevenTwoCounts } from "../../domain/sevenTwo";
-import {
-  computePayoutRanking,
-  rebuyOrderByPlayer,
-  replayEvents,
-} from "../../domain/ranking";
-import type { GamedayPlayer, Player } from "../../types/domain";
-
-interface ResultsData {
-  gamedays: {
-    id: string;
-    date: string;
-    counts_double: boolean;
-    status: string;
-    rows: GamedayPlayer[];
-    sevenTwoByPlayer: Record<string, number>;
-    dayRankByPlayer: Record<string, number>;
-    rebuyCountByPlayer: Record<string, number>;
-    rebuyOrderByPlayer: Record<string, number>;
-  }[];
-  players: Player[];
-}
-
-async function load(seasonId: string): Promise<ResultsData> {
-  const [gamedays, players] = await Promise.all([
-    listGamedays(seasonId),
-    listPlayers(),
-  ]);
-  const withRows = await Promise.all(
-    gamedays.map(async (g) => {
-      const [gamedayPlayers, events] = await Promise.all([
-        listGamedayPlayers(g.id),
-        listEvents(g.id),
-      ]);
-      const dayRankByPlayer = Object.fromEntries(
-        computePayoutRanking(gamedayPlayers.map((row) => row.player_id), events)
-          .map((row) => [row.playerId, row.rank]),
-      );
-      return {
-        id: g.id,
-        date: g.date,
-        counts_double: g.counts_double,
-        status: g.status,
-        sevenTwoByPlayer: Object.fromEntries(sevenTwoCounts(events)),
-        dayRankByPlayer,
-        rows: gamedayPlayers
-          .filter((r) => r.final_rank !== null)
-          .sort(
-            (a, b) =>
-              (dayRankByPlayer[a.player_id] ?? Infinity) -
-              (dayRankByPlayer[b.player_id] ?? Infinity),
-          ),
-        rebuyCountByPlayer: Object.fromEntries(
-          [...replayEvents(gamedayPlayers.map((row) => row.player_id), events)]
-            .map(([playerId, state]) => [playerId, state.rebuys]),
-        ),
-        rebuyOrderByPlayer: Object.fromEntries(
-          rebuyOrderByPlayer(
-            gamedayPlayers.map((row) => row.player_id),
-            events,
-          ),
-        ),
-      };
-    }),
-  );
-  return { gamedays: withRows, players };
-}
 
 export default function ResultsPage() {
   const { seasonId } = useParams();
-  const { data, loading, error } = useAsync(() => load(seasonId!), [seasonId]);
-
-  const nameOf = (id: string) =>
-    data?.players.find((p) => p.id === id)?.display_name ?? id;
+  const { data, loading, error } = useAsync(() => getSeasonResults(seasonId!), [seasonId]);
 
   return (
     <div>
       <h2>Journées</h2>
       {loading && <p>Chargement…</p>}
       {error && <p style={{ color: "#ffbfb5" }}>{error.message}</p>}
-      {(data?.gamedays ?? []).map((g) => (
+      {(data ?? []).map((g) => (
         <div className="card" key={g.id}>
           <div className="row spread">
             <strong>{g.date}</strong>
@@ -110,7 +38,7 @@ export default function ResultsPage() {
                   <tr key={r.player_id}>
                     <td>{g.dayRankByPlayer[r.player_id]}</td>
                     <td>
-                      {nameOf(r.player_id)}
+                      {r.player?.display_name ?? r.player_id}
                       {(g.rebuyCountByPlayer[r.player_id] ?? 0) > 0
                         ? ` (R${g.rebuyOrderByPlayer[r.player_id]})`
                         : ""}

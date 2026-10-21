@@ -3,6 +3,8 @@ import { getClock } from "../api/clock";
 import { supabase } from "../lib/supabaseClient";
 import { clockState, type ClockState } from "../domain/clock";
 import type { BlindLevel, TournamentClock } from "../types/domain";
+import { useAsync } from "./useAsync";
+import { usePolling } from "./usePolling";
 
 interface Result {
   clock: TournamentClock | null;
@@ -18,17 +20,14 @@ export function useClock(
   structure: BlindLevel[],
   levelDurationMinutes: number,
 ): Result {
-  const [clock, setClock] = useState<TournamentClock | null>(null);
+  const { data: clock, reload, update } = useAsync(() => getClock(gamedayId), [gamedayId]);
   const [now, setNow] = useState(Date.now());
   const [justCompleted, setJustCompleted] = useState(false);
   const wasZero = useRef(false);
 
-  function reload() {
-    getClock(gamedayId).then(setClock);
-  }
+  usePolling(reload, 2000);
 
   useEffect(() => {
-    reload();
     const channel = supabase
       .channel(`clock:${gamedayId}`)
       .on(
@@ -39,21 +38,13 @@ export function useClock(
           table: "tournament_clock",
           filter: `gameday_id=eq.${gamedayId}`,
         },
-        (payload) => setClock(payload.new as TournamentClock),
+        (payload) => update(payload.eventType === "DELETE" ? null : payload.new as TournamentClock),
       )
       .subscribe();
-    // Poll as a fallback: browser/device websocket proxies can silently fail
-    // while REST remains reachable. Realtime stays the fast path; polling
-    // guarantees every display eventually sees pause/start/level changes.
-    const poll = window.setInterval(() => {
-      getClock(gamedayId).then(setClock).catch(() => undefined);
-    }, 2000);
     return () => {
-      window.clearInterval(poll);
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamedayId]);
+  }, [gamedayId, update]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);

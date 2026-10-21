@@ -1,9 +1,9 @@
 import { Link, Navigate, useParams } from "react-router-dom";
-import { useEffect } from "react";
 import { getActiveGameday } from "../../api/gamedays";
 import { useGameday } from "../../hooks/useGameday";
 import { useAsync } from "../../hooks/useAsync";
 import { useClock } from "../../hooks/useClock";
+import { usePolling } from "../../hooks/usePolling";
 import ClockView from "../../components/ClockView";
 import PublicPreGameView from "./PublicPreGameView";
 import { averageStack } from "../../domain/chips";
@@ -18,10 +18,7 @@ import { rebuySecondsRemaining } from "../../domain/clock";
 export function ActivePublicClockPage() {
   const { data: active, loading, error, reload } = useAsync(getActiveGameday, []);
 
-  useEffect(() => {
-    const poll = window.setInterval(reload, 5000);
-    return () => window.clearInterval(poll);
-  }, [reload]);
+  usePolling(reload, 5000);
 
   if (loading && !active) return <div className="app">Chargement de la journée…</div>;
   if (error) return <div className="app">Erreur : {error.message}</div>;

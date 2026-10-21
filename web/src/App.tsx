@@ -1,28 +1,30 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 
 // Admin
-import LoginPage from "./features/admin/LoginPage";
-import ForgotPasswordPage from "./features/admin/ForgotPasswordPage";
-import ResetPasswordPage from "./features/admin/ResetPasswordPage";
-import AdminLayout from "./features/admin/AdminLayout";
-import SeasonsPage from "./features/admin/seasons/SeasonsPage";
-import SeasonEditorPage from "./features/admin/seasons/SeasonEditorPage";
-import PlayersPage from "./features/admin/PlayersPage";
-import GamedaySetupPage from "./features/admin/gameday/GamedaySetupPage";
-import GamedayPlacementPage from "./features/admin/gameday/GamedayPlacementPage";
-import LivePage from "./features/admin/live/LivePage";
-import ClockControlPage from "./features/admin/clock/ClockControlPage";
-import ValidatePage from "./features/admin/validate/ValidatePage";
+const LoginPage = lazy(() => import("./features/admin/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("./features/admin/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./features/admin/ResetPasswordPage"));
+const AdminLayout = lazy(() => import("./features/admin/AdminLayout"));
+const SeasonsPage = lazy(() => import("./features/admin/seasons/SeasonsPage"));
+const SeasonEditorPage = lazy(() => import("./features/admin/seasons/SeasonEditorPage"));
+const PlayersPage = lazy(() => import("./features/admin/PlayersPage"));
+const GamedaySetupPage = lazy(() => import("./features/admin/gameday/GamedaySetupPage"));
+const GamedayPlacementPage = lazy(() => import("./features/admin/gameday/GamedayPlacementPage"));
+const LivePage = lazy(() => import("./features/admin/live/LivePage"));
+const ClockControlPage = lazy(() => import("./features/admin/clock/ClockControlPage"));
+const ValidatePage = lazy(() => import("./features/admin/validate/ValidatePage"));
 
 // Public
-import PublicLayout from "./features/public/PublicLayout";
-import StandingsPage from "./features/public/StandingsPage";
-import SevenTwoPage from "./features/public/SevenTwoPage";
-import ResultsPage from "./features/public/ResultsPage";
-import PublicClockPage, { ActivePublicClockPage } from "./features/public/PublicClockPage";
-import PublicPayoutPage from "./features/public/PublicPayoutPage";
+const PublicLayout = lazy(() => import("./features/public/PublicLayout"));
+const StandingsPage = lazy(() => import("./features/public/StandingsPage"));
+const SevenTwoPage = lazy(() => import("./features/public/SevenTwoPage"));
+const ResultsPage = lazy(() => import("./features/public/ResultsPage"));
+const PublicClockPage = lazy(() => import("./features/public/PublicClockPage"));
+const ActivePublicClockPage = lazy(() => import("./features/public/PublicClockPage")
+  .then((module) => ({ default: module.ActivePublicClockPage })));
+const PublicPayoutPage = lazy(() => import("./features/public/PublicPayoutPage"));
 import PublicHome from "./features/public/PublicHome";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -34,6 +36,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
+    <Suspense fallback={<div className="app">Chargement…</div>}>
     <Routes>
       <Route path="/" element={<Navigate to="/pub" replace />} />
 
@@ -77,5 +80,6 @@ export default function App() {
 
       <Route path="*" element={<div className="app">Page introuvable.</div>} />
     </Routes>
+    </Suspense>
   );
 }
