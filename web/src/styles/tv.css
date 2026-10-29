@@ -1,0 +1,141 @@
+/* Dedicated public display layout for 960×540 television screens. */
+@media screen and (max-width: 1000px) and (max-height: 600px) {
+  .clock--tv {
+    width: 100vw;
+    height: 100vh;
+    min-height: 0;
+    grid-template-columns: minmax(150px, 0.72fr) minmax(0, 2.2fr) minmax(120px, 0.58fr);
+    gap: 16px;
+    padding: 22px;
+    border-width: 6px;
+    outline-offset: -11px;
+  }
+
+  .clock--tv .clock__main {
+    min-width: 0;
+  }
+
+  .clock--tv .clock__time {
+    font-size: clamp(7rem, 19vw, 11rem);
+    line-height: 0.9;
+  }
+
+  .clock--tv .clock__blinds {
+    margin: 8px 0;
+    font-size: clamp(3.2rem, 8vw, 5rem);
+  }
+
+  .clock--tv .clock__level {
+    margin-bottom: 4px;
+    font-size: 1.15rem;
+    letter-spacing: 0.16em;
+  }
+
+  .clock--tv .clock__bubble {
+    margin-bottom: 4px;
+    font-size: clamp(1.3rem, 3vw, 2rem);
+  }
+
+  .clock--tv .clock__side {
+    padding: 0;
+  }
+
+  .clock--tv .clock__side > div {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .clock--tv .clock__side--payout > div:first-child {
+    margin-bottom: 10px;
+    padding: 7px;
+  }
+
+  .clock--tv .clock__logo {
+    width: min(100%, 112px);
+    max-height: 62px;
+    object-fit: contain;
+  }
+
+  .clock--tv .clock__side h2 {
+    margin-bottom: 8px;
+    font-size: 0.78rem;
+  }
+
+  .clock--tv .clock__side ol {
+    gap: 5px;
+  }
+
+  .clock--tv .clock__side li {
+    gap: 4px;
+    padding-bottom: 4px;
+    font-size: 0.8rem;
+  }
+
+  .clock--tv .clock__stats {
+    justify-content: center;
+    gap: 38px;
+    margin-top: 20px;
+    font-size: 0.65rem;
+  }
+
+  .clock--tv .clock__stats b {
+    margin-top: 3px;
+    font-size: 1.75rem;
+  }
+
+  .clock--tv .clock__rebuy {
+    margin-top: 10px;
+    font-size: 1.05rem;
+  }
+
+  .clock--tv .clock__controls {
+    display: none;
+  }
+
+  .app--tv {
+    width: 100vw;
+    height: 100vh;
+    min-height: 0;
+    padding: 18px 30px;
+    overflow: hidden;
+  }
+
+  .app--tv > h1 {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    font-size: 1.8rem;
+  }
+
+  .app--tv .card {
+    margin-bottom: 10px;
+    padding: 10px 16px;
+  }
+
+  .app--tv .card p {
+    display: inline-block;
+    margin: 4px 20px 4px 0;
+  }
+
+  .app--tv h2 {
+    margin-bottom: 6px;
+    font-size: 1.25rem;
+  }
+
+  .app--tv table {
+    table-layout: fixed;
+  }
+
+  .app--tv th,
+  .app--tv td {
+    padding: 6px 12px;
+    font-size: 0.95rem;
+  }
+
+  .app--tv th {
+    font-size: 0.65rem;
+  }
+
+  .app--tv .btn {
+    display: none;
+  }
+}

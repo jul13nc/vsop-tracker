@@ -47,7 +47,7 @@ export default function PublicPayoutPage() {
   }
 
   return (
-    <main className="app">
+      <main className="app app--tv">
       <h1>Payout — {data.gameday.date}</h1>
       <div className="card">
         <p>Partie terminée · {data.players.length} joueurs · {rebuys} recaves</p>

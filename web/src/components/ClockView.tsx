@@ -18,6 +18,7 @@ interface Props {
   upcomingLevels?: BlindLevel[];
   flash: boolean;
   playBeep: boolean;
+  tv?: boolean;
   children?: React.ReactNode;
 }
 
@@ -33,6 +34,7 @@ export default function ClockView({
   upcomingLevels,
   flash,
   playBeep,
+  tv = false,
   children,
 }: Props) {
   const beeped = useRef(false);
@@ -62,7 +64,7 @@ export default function ClockView({
   }, [state.level?.level, state.secondsRemaining, playBeep, flash]);
 
   return (
-    <div className={`clock${flash ? " flash" : ""}${payout ? " clock--public" : ""}`}>
+    <div className={`clock${flash ? " flash" : ""}${payout ? " clock--public" : ""}${tv ? " clock--tv" : ""}`}>
       {payout && (
           <aside className="clock__side clock__side--payout">
             <div>

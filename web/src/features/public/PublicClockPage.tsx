@@ -114,6 +114,7 @@ function PublicClockDisplay({ gamedayId }: { gamedayId: string }) {
       upcomingLevels={upcomingLevels}
       flash={state.levelComplete}
       playBeep
+      tv
     >
       <div className="clock__controls">
         <Link className="btn btn--ghost" to={`/pub/${data.season.id}`}>
