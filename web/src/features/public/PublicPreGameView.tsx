@@ -34,27 +34,25 @@ export default function PublicPreGameView({
   const unplaced = unplacedIds.map((id) => nameById.get(id) ?? id);
 
   return (
-    <div className="app">
+    <div className="app app--public-pregame">
       <h2>Journée du {formatGamedayDate(gameday.date)}</h2>
-      <p className="muted">
-        La partie démarre bientôt · {players.length} participants
-        {gameday.counts_double ? " · compte double" : ""}
-      </p>
 
-      <div className="card">
-        <h3>Stack de départ</h3>
-        <ChipStack chips={season.chip_config} />
-        <p className="muted">
-          Chaque joueur reçoit {startingStackValue(season.chip_config)} jetons.
-        </p>
-      </div>
-
-      {seating.length > 0 && (
+      <div className="public-pregame-grid">
         <div className="card">
-          <h3>Placement des tables</h3>
-          <SeatingTables seating={seating} nameById={nameById} />
+          <h3>Stack de départ</h3>
+          <ChipStack chips={season.chip_config} />
+          <p className="muted">
+            Chaque joueur reçoit {startingStackValue(season.chip_config)} jetons.
+          </p>
         </div>
-      )}
+
+        {seating.length > 0 && (
+          <div className="card">
+            <h3>Placement des tables</h3>
+            <SeatingTables seating={seating} nameById={nameById} />
+          </div>
+        )}
+      </div>
 
       {unplaced.length > 0 && (
         <p className="muted">Non placés : {unplaced.join(", ")}</p>

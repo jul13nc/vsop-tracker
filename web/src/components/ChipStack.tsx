@@ -20,14 +20,14 @@ export default function ChipStack({ chips }: Props) {
       {chips.map((chip, index) => {
         const color = chipColor(chip, index);
         const textColor = chipTextColor(color);
-        const disks = Math.max(1, chip.count);
+        const disks = Math.min(5, Math.max(1, chip.count));
         const top = (disks - 1) * DISK_OFFSET;
         return (
           <div key={`${chip.name}-${index}`} className="chip-stack__item">
             <div
               className="chip-pile"
               role="img"
-              aria-label={`${disks} jetons ${chip.name} de ${chip.value}`}
+              aria-label={`${chip.count} jetons ${chip.name} de ${chip.value}`}
               style={
                 {
                   "--pile-disks": disks,

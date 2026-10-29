@@ -138,7 +138,6 @@ export default function ClockView({
             <ol>
               {upcomingLevels.map((level) => (
                 <li key={level.level}>
-                  <span>N{level.level}</span>
                   <strong>{formatBlinds(level)}</strong>
                 </li>
               ))}
